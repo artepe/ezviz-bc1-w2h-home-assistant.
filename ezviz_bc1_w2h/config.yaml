@@ -1,0 +1,24 @@
+name: "EZVIZ BC1 / W2H Cloud Proxy (TEST)"
+version: "0.1.0"
+slug: "ezviz_bc1_w2h"
+description: "Experimental BC1 + W2H EZVIZ cloud video proxy for Home Assistant go2rtc, running locally on Raspberry Pi 5"
+url: "https://github.com/artepe/ezviz-bc1-w2h-home-assistant."
+arch:
+  - aarch64
+startup: application
+boot: auto
+init: false
+stage: experimental
+host_network: true
+options:
+  camera_serial: ""
+  username: ""
+  password: ""
+  force_relogin: false
+  restart_delay: 30
+schema:
+  camera_serial: str
+  username: str
+  password: password
+  force_relogin: bool
+  restart_delay: "int(10,300)"
