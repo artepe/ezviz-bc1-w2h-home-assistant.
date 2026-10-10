@@ -9,6 +9,32 @@
 >
 > This is **not an offline/local-only video solution**. A fully Raspberry Pi–hosted Python proxy / standalone add-on is **not yet implemented or tested**.
 
+## Raspberry Pi 5 add-on — experimental test v0.1.0
+
+**New test version is available in [`ezviz_bc1_w2h/`](ezviz_bc1_w2h/).** It aims to run the cloud video proxy **directly on Raspberry Pi 5 / Home Assistant OS**, so that the MacBook is no longer required.
+
+- **[Finnish installation + options](ezviz_bc1_w2h/DOCS.md)** — detailed Pi setup and safe rollback.
+- Source: [Dockerfile](ezviz_bc1_w2h/Dockerfile), [config.yaml](ezviz_bc1_w2h/config.yaml), [runner.py](ezviz_bc1_w2h/runner.py).
+- Status: **experimental and NOT yet built/tested on Raspberry Pi 5**. The MacBook method below remains the verified working version.
+- Safety: binds the proxy to `127.0.0.1:8558` on the HA host and stores a private session in add-on data. Uses EZVIZ cloud (not local/offline RTSP).
+- The GitHub repository must be **Public** before Home Assistant OS can install it from the community store without GitHub authentication.
+
+Add this repository in Home Assistant → Apps / Add-on Store → Repositories:
+
+```text
+https://github.com/artepe/ezviz-bc1-w2h-home-assistant.
+```
+
+**go2rtc source for Pi-only testing** (same BC1 serial as add-on configuration):
+
+```yaml
+streams:
+  ezviz_bc1:
+    - ffmpeg:http://127.0.0.1:8558/YOUR_HUB_SERIAL-YOUR_BC1_SERIAL.ts#video=copy
+```
+
+Keep the existing Lovelace WebRTC card. Do not remove your working Mac configuration until the Pi test works.
+
 ## Confirmed hardware and results
 
 | Component | Tested result |
@@ -166,7 +192,7 @@ Home Assistant Generic Camera reported `Stream network error` or `Timeout while 
 - [x] go2rtc video stream on Home Assistant OS / Raspberry Pi 5
 - [x] HACS WebRTC Lovelace live-view card
 - [ ] Independent Python proxy running on Raspberry Pi 5 without the Mac
-- [ ] Secure, supervised Home Assistant add-on and automatic restart
+- [x] First experimental supervised Home Assistant add-on source published (**Pi build not tested**)
 - [ ] Separate live-stream verification for a second BC1
 - [ ] Audio remux/transcoding and stability/battery testing
 - [ ] On-demand wake-up integration
