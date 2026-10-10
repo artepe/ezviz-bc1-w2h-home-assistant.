@@ -1,0 +1,20 @@
+# Never publish EZVIZ secrets/sessions or local media.
+.env
+.env.*
+!.env.example
+*token*.json
+*credentials*.json
+*.key
+*.pem
+*.log
+*.ts
+*.mp4
+*.jpg
+*.jpeg
+*.png
+*.zip
+__pycache__/
+.venv/
+.venv-video/
+venv/
+.DS_Store
