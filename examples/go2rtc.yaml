@@ -1,0 +1,6 @@
+# Add or merge under the existing streams: key in go2rtc Web UI > config.
+# Replace placeholders with your own private network address/device ID.
+# Tested configuration: video=copy only (without audio=copy).
+streams:
+  ezviz_bc1:
+    - ffmpeg:http://YOUR_MAC_LAN_IP:8558/YOUR_HUB_SERIAL-YOUR_CAMERA_SERIAL.ts#video=copy
