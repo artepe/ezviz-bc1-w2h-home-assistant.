@@ -1,0 +1,8 @@
+# Requires HACS AlexxIT/WebRTC integration using an existing go2rtc add-on.
+# ezviz_bc1 must match the stream name in go2rtc.yaml.
+type: custom:webrtc-camera
+url: ezviz_bc1
+mode: mse
+media: video
+ui: true
+title: EZVIZ BC1 – Live
