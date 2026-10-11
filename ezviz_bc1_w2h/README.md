@@ -1,6 +1,6 @@
 # EZVIZ BC1 / W2H Cloud Proxy (TEST)
 
-**Experimental Raspberry Pi 5 / Home Assistant OS add-on — version 0.1.0.**
+**Experimental Raspberry Pi 5 / Home Assistant OS add-on — version 0.1.1.**
 
 Run [pyEzvizApi](https://github.com/RenierM26/pyEzvizApi) cloud live streaming on Raspberry Pi 5, replacing the currently verified MacBook relay. Requires EZVIZ account, W2H hub, BC1 subcamera, internet and go2rtc.
 
