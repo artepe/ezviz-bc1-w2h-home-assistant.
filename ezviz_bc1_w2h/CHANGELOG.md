@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.2 — Prebuilt ARM64 Docker image from GitHub Actions
+
+- GitHub Actions successfully built and published `ghcr.io/artepe/ezviz-bc1-w2h:0.1.2` for linux/arm64.
+- Python CLI and FFmpeg smoke tests on the built image succeeded under QEMU.
+- Home Assistant add-on now uses `image:` and pulls the ready-made image instead of building on Raspberry Pi (workaround for Docker/Alpine DNS network errors).
+- **The GitHub Container Registry package must be Public for unauthenticated installation.** On GitHub go to your profile → Packages → ezviz-bc1-w2h → Package settings → Change visibility → Public.
+- Pi 5 deployment, headless EZVIZ login, streaming and reconnection are still unverified.
+
 ## 0.1.1 — Alpine APK mirror retry
 
 - Fix attempted for Raspberry Pi 5 install error: Alpine v3.22 APKINDEX fetch reported a temporary network error and apk misleadingly reported `python3`, `ffmpeg`, `git`, and `py3-pip` as unavailable.
