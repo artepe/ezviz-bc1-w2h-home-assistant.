@@ -1,5 +1,5 @@
 name: "EZVIZ BC1 / W2H Cloud Proxy (TEST)"
-version: "0.1.0"
+version: "0.1.1"
 slug: "ezviz_bc1_w2h"
 description: "Experimental BC1 + W2H EZVIZ cloud video proxy for Home Assistant go2rtc, running locally on Raspberry Pi 5"
 url: "https://github.com/artepe/ezviz-bc1-w2h-home-assistant."
