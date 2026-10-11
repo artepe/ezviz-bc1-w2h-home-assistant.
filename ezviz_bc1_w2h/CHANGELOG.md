@@ -1,12 +1,20 @@
 # Changelog
 
+## 2026-10-11 — Raspberry Pi 5 real-hardware test passed (v0.1.2)
+
+- Confirmed Home Assistant OS / Pi 5 installs the prebuilt `ghcr.io/artepe/ezviz-bc1-w2h:0.1.2` image successfully.
+- Confirmed addon starts, authenticates to EZVIZ, writes a private session token under `/data`, and starts the `pyEzvizApi` cloud MPEG-TS proxy bound to `127.0.0.1:8558`.
+- Confirmed BC1 live image appeared in the **go2rtc browser player** using `ffmpeg:http://127.0.0.1:8558/YOUR_SERIAL.ts#video=copy`; MacBook stream proxy was no longer required.
+- Published reusable Lovelace WebRTC card and new Pi-first setup guide.
+- Remaining validation: Pi-only dashboard playback, restart-on-boot, session renewal, second BC1, audio, long-term uptime and battery use.
+
 ## 0.1.2 — Prebuilt ARM64 Docker image from GitHub Actions
 
 - GitHub Actions successfully built and published `ghcr.io/artepe/ezviz-bc1-w2h:0.1.2` for linux/arm64.
 - Python CLI and FFmpeg smoke tests on the built image succeeded under QEMU.
 - Home Assistant add-on now uses `image:` and pulls the ready-made image instead of building on Raspberry Pi (workaround for Docker/Alpine DNS network errors).
 - **The GitHub Container Registry package must be Public for unauthenticated installation.** On GitHub go to your profile → Packages → ezviz-bc1-w2h → Package settings → Change visibility → Public.
-- Pi 5 deployment, headless EZVIZ login, streaming and reconnection are still unverified.
+- Subsequent 2026-10-11 hardware test confirmed Pi 5 deployment, headless EZVIZ login and go2rtc live stream; reconnection remains unverified.
 
 ## 0.1.1 — Alpine APK mirror retry
 
