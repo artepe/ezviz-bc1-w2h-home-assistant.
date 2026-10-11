@@ -1,11 +1,11 @@
 # EZVIZ BC1 / W2H to Home Assistant (English guide)
 
-> **Update 2026-10-11: Raspberry Pi 5 standalone proxy WORKING.** Version 0.1.2 of the Home Assistant OS add-on was downloaded and installed from a GitHub Actions prebuilt ARM64 container. Initial EZVIZ login, private token storage and the cloud video proxy started successfully; **live picture appeared in go2rtc on the Pi**. No MacBook stream proxy needed. See [the Pi-specific add-on instructions](../ezviz_bc1_w2h/DOCS.md). The previous Mac-based path below is retained as a tested fallback. Pi-specific Lovelace playback, reboot and long-term stability remain to be confirmed.
+> **Update 2026-10-11: Raspberry Pi 5 standalone proxy WORKING.** Version 0.1.2 of the Home Assistant OS add-on was downloaded and installed from a GitHub Actions prebuilt ARM64 container. Initial EZVIZ login, private token storage and the cloud video proxy started successfully; **live picture appeared in go2rtc and the Home Assistant Lovelace WebRTC dashboard on the Pi**. No MacBook stream proxy needed. See [the Pi-specific add-on instructions](../ezviz_bc1_w2h/DOCS.md). The previous Mac-based path below is retained as a tested fallback. Reboot recovery and long-term stability remain to be confirmed.
 
 
 ## Tested scope
 
-This is a **cloud-based** method for **EZVIZ BC1** battery cameras paired with an **EZVIZ W2H** hub. Two tested setups now exist: the original Python proxy on **macOS**, and a Python proxy in a **Home Assistant OS add-on on Raspberry Pi 5**. Both supplied live video to go2rtc; the HACS **AlexxIT/WebRTC** Lovelace card worked with the original proxy. It did not require local camera RTSP/ONVIF. It is **not** an offline solution.
+This is a **cloud-based** method for **EZVIZ BC1** battery cameras paired with an **EZVIZ W2H** hub. Two tested setups now exist: the original Python proxy on **macOS**, and a Python proxy in a **Home Assistant OS add-on on Raspberry Pi 5**. Both supplied live video to go2rtc; the HACS **AlexxIT/WebRTC** Lovelace card was verified with the Raspberry Pi-only and original MacBook paths. It did not require local camera RTSP/ONVIF. It is **not** an offline solution.
 
 ## Architecture
 
@@ -76,8 +76,8 @@ streams:
     - ffmpeg:http://127.0.0.1:8558/YOUR_HUB_SERIAL-YOUR_CAMERA_SERIAL.ts#video=copy
 ```
 
-The **live go2rtc stream was verified working on Pi 5 on 2026-10-11**. Add the [ready-made WebRTC Lovelace card](../examples/lovelace-webrtc.yaml) and verify its playback. The existing go2rtc and proxy add-ons use host networking; do not expose port 8558 publicly.
+The **live go2rtc stream AND [WebRTC Lovelace card](../examples/lovelace-webrtc.yaml) were verified working with the Pi-only proxy on 2026-10-11**. The existing go2rtc and proxy add-ons use host networking; do not expose port 8558 publicly.
 
 ## Troubleshooting and limitations
 
-See [troubleshooting](TROUBLESHOOTING.md). Some Generic Camera RTSP/HTTP modes failed in this test, but the WebRTC custom card worked. The Mac must stay powered on **only** if using the legacy Mac proxy. The Pi-only add-on is built and its live go2rtc stream has been verified; long-term recovery behavior is not yet validated. Live viewing drains battery and relies on EZVIZ cloud authentication.
+See [troubleshooting](TROUBLESHOOTING.md). Some Generic Camera RTSP/HTTP modes failed in this test, but the WebRTC custom card worked. The Mac must stay powered on **only** if using the legacy Mac proxy. The Pi-only add-on is built and its live go2rtc and Lovelace video streams have been verified; long-term recovery behavior is not yet validated. Live viewing drains battery and relies on EZVIZ cloud authentication.
