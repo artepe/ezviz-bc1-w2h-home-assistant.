@@ -7,7 +7,7 @@
 > [!IMPORTANT]
 > **Working Raspberry Pi 5 setup (verified 2026-10-11):** EZVIZ BC1 → W2H → EZVIZ cloud → [pyEzvizApi](https://github.com/RenierM26/pyEzvizApi) in a **Home Assistant OS add-on on Raspberry Pi 5** → HTTP MPEG-TS at `127.0.0.1:8558` → [go2rtc](https://github.com/AlexxIT/go2rtc) → [WebRTC Camera](https://github.com/AlexxIT/WebRTC).
 >
-> **Verified:** ARM64 image installed successfully; headless EZVIZ authentication succeeded; private session token was saved; the Python proxy started; **live H.264 camera picture appeared in go2rtc from the Pi-hosted source, without MacBook as video proxy**. The WebRTC Lovelace card was previously verified with the same stream name, and the Pi-specific dashboard card is provided below. **Not yet verified:** reboot recovery, long-term reliability, other BC1 units, audio and Pi-only Lovelace card playback.
+> **Verified:** ARM64 image installed successfully; headless EZVIZ authentication succeeded; private session token was saved; the Python proxy started; **live H.264 camera picture appeared in go2rtc from the Pi-hosted source, without MacBook as video proxy**. **The live picture also works in the Home Assistant Lovelace WebRTC card using the Pi-hosted stream**. **Not yet verified:** reboot recovery, long-term reliability, other BC1 units, audio, and automatic recovery after cloud session expiry.
 >
 > **Requires EZVIZ cloud / internet**. This is not native local RTSP or an offline camera connection.
 
@@ -35,7 +35,7 @@ streams:
     - ffmpeg:http://127.0.0.1:8558/YOUR_HUB_SERIAL-YOUR_BC1_SERIAL.ts#video=copy
 ```
 
-Use your existing Lovelace WebRTC card with `url: ezviz_bc1`. For safe migration, keep the MacBook source as a separate backup until your Pi dashboard is verified.
+Use your existing Lovelace WebRTC card with `url: ezviz_bc1`. **Pi-hosted Lovelace playback was confirmed working on 2026-10-11**; the MacBook is no longer required.
 
 ### New in v0.1.2: prebuilt ARM64 image
 
@@ -58,7 +58,7 @@ The prebuilt GHCR package was **downloaded and installed successfully** on the t
 | Video | **H.264 at 1280 × 720** |
 | Audio | **AAC** detected in a direct clip; audio disabled in the working go2rtc source |
 | Saved clip | Requested 10 seconds; observed **7.69 seconds of playable media** |
-| Live stream | **Pi-hosted camera source working in go2rtc (2026-10-11)**; WebRTC Lovelace card was verified previously with Mac source |
+| Live stream | **Full Pi-only workflow confirmed (2026-10-11): live picture in go2rtc and Home Assistant Lovelace WebRTC card** |
 | Separate media decryption code | **Not needed on the tested clear-media stream path** |
 
 One BC1 stream is end-to-end verified. Recognition of another camera on the same hub does **not** yet prove its video stream works. Results may vary by camera firmware, cloud region, account, battery state, and availability.
@@ -89,7 +89,7 @@ WebRTC Camera Lovelace card
 
 **No native RTSP/ONVIF camera connection needed.** Both the EZVIZ proxy and the go2rtc add-on use host networking; the loopback address stays on the Pi.
 
-### Quick start: Raspberry Pi 5 / Home Assistant OS (verified go2rtc live picture)
+### Quick start: Raspberry Pi 5 / Home Assistant OS (verified end-to-end, including Lovelace)
 
 1. In Home Assistant **Apps / Add-on Store → Repositories** add this repository. Install **EZVIZ BC1 / W2H Cloud Proxy (TEST)**, version **0.1.2**. The prebuilt Linux/ARM64 image is provided by GitHub Actions; no Alpine `apk` image build on the Pi is necessary.
 2. In the add-on **Configuration**, enter `camera_serial` (the BC1 subcamera serial including hub prefix, not just the W2H hub), EZVIZ `username` and `password`; leave `force_relogin: false`, `restart_delay: 30`. Never share credentials or account tokens.
@@ -103,7 +103,7 @@ streams:
 ```
 
 5. Save and restart go2rtc if required. Open **ezviz_bc1 → stream** in go2rtc's Web UI. The **Pi-hosted live image was verified working here on 2026-10-11**.
-6. Install the [HACS WebRTC Camera integration](https://github.com/AlexxIT/WebRTC), connect to the existing go2rtc service, and add the following **Manual** Lovelace card. The previous MacBook-proxy WebRTC card worked; confirm the card on your own Pi-only configuration.
+6. Install the [HACS WebRTC Camera integration](https://github.com/AlexxIT/WebRTC), connect to the existing go2rtc service, and add the following **Manual** Lovelace card. **Live video from the Pi-only proxy was confirmed working in this Lovelace card on 2026-10-11.**
 
 ```yaml
 type: vertical-stack
@@ -125,8 +125,6 @@ cards:
 **See the detailed [Pi add-on installation guide](ezviz_bc1_w2h/DOCS.md).** A different stream name such as `ezviz_bc1_pi` is also valid, but its Lovelace `url` must match.
 
 ## MacBook-based method (tested fallback)
-
-## Quick start — verified MacBook + Home Assistant setup
 
 ### 1. Install on the MacBook
 
@@ -240,10 +238,15 @@ Home Assistant Generic Camera reported `Stream network error` or `Timeout while 
 - [x] HACS WebRTC Lovelace live-view card
 - [x] Pi-hosted cloud proxy + go2rtc **live picture verified 2026-10-11**, MacBook not needed as stream proxy
 - [x] Prebuilt GitHub Actions ARM64 image, add-on v0.1.2 installed and initial EZVIZ login verified on Raspberry Pi 5
-- [ ] Verify Pi-only Lovelace playback, persistence across a Pi reboot, and multi-hour stability
+- [x] Pi-only WebRTC Lovelace live video confirmed working (2026-10-11)
+- [ ] Verify persistence across a Pi reboot, cloud session renewal, and multi-hour stability
 - [ ] Separate live-stream verification for a second BC1
 - [ ] Audio remux/transcoding and stability/battery testing
 - [ ] On-demand wake-up integration
+
+## End-to-end verification
+
+- [End-to-end verification report](docs/VERIFIED_PI5_2026-10-11.md) — exact tested platform, components, results, issues, and remaining work. No account credentials or camera-specific IDs are published.
 
 ## Guides and examples
 
@@ -264,4 +267,4 @@ This repository documents an integration procedure and includes original helper 
 
 This repository's MIT license covers its original content only; upstream software retains its respective licenses.
 
-**Status (2026-10-11): working Raspberry Pi 5 cloud video proof of concept (go2rtc live confirmed); WebRTC Lovelace card supplied. Experimental: long-term operation and reboot recovery not yet tested.**
+**Status (2026-10-11): complete Pi-only BC1 + W2H → EZVIZ cloud → pyEzvizApi → go2rtc → Home Assistant WebRTC Lovelace live video VERIFIED working. Experimental: long-term operation, reboot recovery and other camera models not yet tested.**
