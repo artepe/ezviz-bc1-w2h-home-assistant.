@@ -1,6 +1,6 @@
 # EZVIZ BC1 + W2H – asennus Home Assistantiin
 
-> **Päivitys 11.10.2026:** EZVIZ BC1 + W2H -kameran livekuva **toimii nyt Raspberry Pi 5:llä ilman MacBookin videopalvelinta**. GitHub Actionsissa rakennettu Home Assistant -lisäosa v0.1.2 asennettiin Pi 5:lle, EZVIZ-kirjautuminen ja istuntotunnisteen tallennus onnistuivat, ja kuva näkyi go2rtc:n live-soittimessa. **Ensisijainen asennus:** [Raspberry Pi 5 -lisäosan ohje](../ezviz_bc1_w2h/DOCS.md). Alla oleva MacBook-ohje jää varavaihtoehdoksi.
+> **Päivitys 11.10.2026:** EZVIZ BC1 + W2H -kameran livekuva **toimii nyt Raspberry Pi 5:llä ilman MacBookin videopalvelinta**. GitHub Actionsissa rakennettu Home Assistant -lisäosa v0.1.2 asennettiin Pi 5:lle, EZVIZ-kirjautuminen ja istuntotunnisteen tallennus onnistuivat, ja kuva näkyi sekä go2rtc:n live-soittimessa **että Home Assistantin Lovelace-valvomokortissa**. **Ensisijainen asennus:** [Raspberry Pi 5 -lisäosan ohje](../ezviz_bc1_w2h/DOCS.md). Alla oleva MacBook-ohje jää varavaihtoehdoksi.
 
 
 ## Mitä tämä tekee?
@@ -11,7 +11,7 @@
 
 `BC1 → W2H → EZVIZ cloud → pyEzvizApi (Raspberry Pi 5:n HA-lisäosa) → 127.0.0.1:8558 → go2rtc → WebRTC-kortti`
 
-**Vanha, myös todistettu vaihtoehto:** `BC1 → W2H → EZVIZ cloud → pyEzvizApi (MacBook) → go2rtc Pi:llä → WebRTC-kortti`. MacBook tarvitsee olla käynnissä vain jos valitset Mac-välityksen. Pi-videon **go2rtc-kuva on todettu toimivaksi**, mutta Pi-version pitkäaikainen toiminta ja Lovelace-kortin lopputestaus ovat vielä kesken.
+**Vanha, myös todistettu vaihtoehto:** `BC1 → W2H → EZVIZ cloud → pyEzvizApi (MacBook) → go2rtc Pi:llä → WebRTC-kortti`. MacBook tarvitsee olla käynnissä vain jos valitset Mac-välityksen. Pi-videon **go2rtc- ja Lovelace-kuva on todettu toimivaksi**. Pitkäaikainen toiminta ja uudelleenkäynnistyksestä palautuminen ovat vielä testaamatta.
 
 ## Vanhat MacBook-ohjeet (varayhteys)
 
