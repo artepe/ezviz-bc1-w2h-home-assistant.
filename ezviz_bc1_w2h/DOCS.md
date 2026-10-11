@@ -1,6 +1,6 @@
-# EZVIZ BC1 / W2H Cloud Proxy — TEST v0.1.1
+# EZVIZ BC1 / W2H Cloud Proxy — TEST v0.1.2
 
-**Experimental Raspberry Pi 5 add-on. Pi image build and runtime are NOT yet verified.** The existing MacBook + go2rtc + Lovelace workflow is verified and remains the fallback.
+**Experimental Raspberry Pi 5 add-on. The image is built and published successfully by GitHub Actions, but it is NOT yet installed or runtime-tested on Raspberry Pi 5.** The existing MacBook + go2rtc + Lovelace workflow is verified and remains the fallback.
 
 ## Mikä tämä on?
 
@@ -91,6 +91,14 @@ streams:
 - **Process monitoring:** proxy process automatically restarts on exit with a configurable delay.
 - **Logging:** raw dependency error messages suppressed because they can contain session tokens.
 - **Scope:** one BC1 camera per add-on instance. Only one camera's live feed has been end-to-end verified with the previous MacBook chain.
-- **Limitations:** Pi build not verified, no interactive MFA login, long-term token refresh not validated, no audio, no battery-saving wake automation.
+- **Limitations:** Image build verified in GitHub Actions; Pi runtime not verified, no interactive MFA login, long-term token refresh not validated, no audio, no battery-saving wake automation.
 
 This folder is a prototype for Home Assistant OS, **not a production-ready integration**.
+
+## Prebuilt container image (v0.1.2)
+
+The GitHub Actions job **successfully built and published** `ghcr.io/artepe/ezviz-bc1-w2h:0.1.2` for linux/arm64. The add-on's `config.yaml` points to this image, avoiding the Pi's Alpine `apk` networking failure.
+
+**Important:** GitHub Container Registry packages may start **Private**, even when this code repository is Public. To allow Home Assistant OS to pull the image, open **GitHub → your profile → Packages → ezviz-bc1-w2h → Package settings → Change visibility → Public**. This publishes the compiled image, **not** your EZVIZ account information.
+
+Run `ha store reload` and check `version_latest: 0.1.2` before installing. If the image pull fails with access denied, check the GHCR package visibility. If it fails for DNS/connectivity, inspect the Supervisor logs.
