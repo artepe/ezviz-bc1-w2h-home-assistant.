@@ -1,5 +1,7 @@
 # Troubleshooting / Vianhaku
 
+**2026-10-11 update:** Complete Raspberry Pi 5 add-on → go2rtc → Home Assistant Lovelace video playback is now verified working. See the [test report](VERIFIED_PI5_2026-10-11.md). The MacBook instructions are preserved as an optional fallback.
+
 ## Camera appears in `devices status`, but video does not start
 
 - Verify that you selected the **BC1 subcamera** device, not only the W2H hub.
@@ -42,11 +44,42 @@ curl -sS --connect-timeout 5 --max-time 15 -o /tmp/ezviz_test.ts \
 
 In our setup Generic Camera initially reported a stream error for HTTP `.ts`, then timed out loading go2rtc's RTSP URL. **go2rtc's own browser player and WebRTC Camera Lovelace card both worked.** Prefer that verified path over repeatedly retrying Generic Camera without logs.
 
-## `127.0.0.1` does not connect from Raspberry Pi
+## `127.0.0.1` and which machine hosts the proxy?
 
-`127.0.0.1` on the **MacBook** refers to the MacBook, not to Home Assistant. The HTTP proxy must be bound to the **Mac's LAN IP**, and go2rtc must use that address. Do not run macOS `ipconfig` in HA OS Terminal.
+In the **recommended Raspberry Pi 5 add-on**, both the EZVIZ cloud proxy and AlexxIT/go2rtc run with host networking. Hence **`127.0.0.1:8558` in go2rtc is the Pi's own EZVIZ proxy**, and this loopback source is verified working. The Home Assistant web interface address and port `8123` are NOT the MPEG-TS source.
+
+In the **older MacBook-based configuration**, `127.0.0.1` on MacBook refers to the MacBook, not to Home Assistant. The Mac HTTP proxy needs to bind to the **Mac's LAN IP**, and go2rtc must use that address. Do not run macOS `ipconfig` in Home Assistant OS Terminal.
 
 The WebRTC integration's `http://localhost:1984` is a **separate** address for go2rtc running alongside Home Assistant; its actual reachability depends on installation networking. go2rtc's WebUI was also directly accessible at the HA host's LAN IP and port 1984 in the tested setup.
+
+## go2rtc still connects to the old MacBook IP / Connection refused
+
+**Observed during successful Pi migration:** The Python add-on started, but go2rtc player continued reporting an old MacBook IP with `Connection refused`. The Pi did not cause that error: go2rtc was still using the previously saved source URL.
+
+Go to **go2rtc → Web UI → config** and update the existing camera stream **without duplicating** `streams:` or the source key:
+
+```yaml
+streams:
+  ezviz_bc1:
+    - ffmpeg:http://127.0.0.1:8558/YOUR_W2H_SERIAL-YOUR_BC1_SERIAL.ts#video=copy
+```
+
+Save, restart the go2rtc add-on if necessary, and open the **same stream name** (`ezviz_bc1 → stream`). If you added a separate Pi test stream named `ezviz_bc1_pi`, choose that stream in the player and set `url: ezviz_bc1_pi` in the Lovelace card.
+
+**The Pi-hosted source and matching Home Assistant WebRTC Lovelace card both worked in the 2026-10-11 hardware test.**
+
+## Pi 5 install fails while trying to fetch Alpine APKINDEX
+
+On the tested Home Assistant OS machine, Docker build failed on `apk add` because all attempted Alpine mirrors returned temporary fetch errors. The Terminal having working DNS and HTTP access did not guarantee container build networking worked. Changing DNS or disabling AdGuard protection did not resolve the build.
+
+The successful workaround was to build and smoke-test a Linux ARM64 image with GitHub Actions and **install add-on version 0.1.2 with a prebuilt GHCR image** rather than building locally.
+
+```bash
+ha store reload
+ha apps install YOUR_REPOSITORY_PREFIX_ezviz_bc1_w2h
+```
+
+Use the actual slug returned by `ha store`; the repository-prefix part differs between installations. If image download is denied, check GHCR package visibility. If download is unreachable, inspect the **Supervisor** logs rather than the Home Assistant Core logs.
 
 ## `then dquote>` prompt on macOS
 
@@ -58,5 +91,5 @@ Detailed Python exception traces can include **EZVIZ session credentials inside 
 
 ## Platform expectations
 
-- **Proven:** MacBook pyEzvizApi → cloud MPEG-TS proxy → Pi go2rtc → WebRTC card.
-- **Not yet proven:** stand-alone Home Assistant add-on, Pi-hosted Python, independent second camera, long-term uptime, exact power draw, on-demand wake API.
+- **Proven 2026-10-11:** **Pi 5 add-on pyEzvizApi → cloud MPEG-TS loopback proxy → Pi go2rtc → Home Assistant Lovelace WebRTC card**, with MacBook not needed as the stream server. Original MacBook proxy was also verified.
+- **Not yet proven:** recovery from Home Assistant OS reboot, session renewal after cloud token expiry, independent second BC1, long-term uptime, exact power draw, battery impact, on-demand wake API.
