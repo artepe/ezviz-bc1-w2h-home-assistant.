@@ -5,17 +5,19 @@
 **Suomeksi:** Toimivaksi testattu tapa näyttää **EZVIZ BC1 -akkukameran** livekuva **W2H-tukiaseman** kautta Home Assistantin Lovelace-näkymässä ilman kameran omaa RTSP- tai ONVIF-palvelinta.
 
 > [!IMPORTANT]
-> **Verified setup:** EZVIZ BC1 → W2H → EZVIZ cloud → [pyEzvizApi](https://github.com/RenierM26/pyEzvizApi) on **MacBook** → HTTP MPEG-TS → [go2rtc](https://github.com/AlexxIT/go2rtc) on **Home Assistant OS / Raspberry Pi 5** → [WebRTC Camera](https://github.com/AlexxIT/WebRTC) Lovelace card.
+> **Working Raspberry Pi 5 setup (verified 2026-10-11):** EZVIZ BC1 → W2H → EZVIZ cloud → [pyEzvizApi](https://github.com/RenierM26/pyEzvizApi) in a **Home Assistant OS add-on on Raspberry Pi 5** → HTTP MPEG-TS at `127.0.0.1:8558` → [go2rtc](https://github.com/AlexxIT/go2rtc) → [WebRTC Camera](https://github.com/AlexxIT/WebRTC).
 >
-> This is **not an offline/local-only video solution**. A fully Raspberry Pi–hosted Python proxy / standalone add-on is **not yet implemented or tested**.
+> **Verified:** ARM64 image installed successfully; headless EZVIZ authentication succeeded; private session token was saved; the Python proxy started; **live H.264 camera picture appeared in go2rtc from the Pi-hosted source, without MacBook as video proxy**. The WebRTC Lovelace card was previously verified with the same stream name, and the Pi-specific dashboard card is provided below. **Not yet verified:** reboot recovery, long-term reliability, other BC1 units, audio and Pi-only Lovelace card playback.
+>
+> **Requires EZVIZ cloud / internet**. This is not native local RTSP or an offline camera connection.
 
 ## Raspberry Pi 5 add-on — experimental test v0.1.2
 
-**New test version is available in [`ezviz_bc1_w2h/`](ezviz_bc1_w2h/).** It aims to run the cloud video proxy **directly on Raspberry Pi 5 / Home Assistant OS**, so that the MacBook is no longer required.
+**Tested working in [`ezviz_bc1_w2h/`](ezviz_bc1_w2h/) on Raspberry Pi 5 / Home Assistant OS.** The Pi runs the cloud video proxy directly; no MacBook is needed as a video server.
 
 - **[Finnish installation + options](ezviz_bc1_w2h/DOCS.md)** — detailed Pi setup and safe rollback.
 - Source: [Dockerfile](ezviz_bc1_w2h/Dockerfile), [config.yaml](ezviz_bc1_w2h/config.yaml), [runner.py](ezviz_bc1_w2h/runner.py).
-- Status: **prebuilt on GitHub Actions; NOT yet installed/tested on Raspberry Pi 5**. The MacBook method below remains the verified working version.
+- Status: **installed and live-video tested on Raspberry Pi 5 (2026-10-11)**. The MacBook method below remains a tested fallback.
 - Safety: binds the proxy to `127.0.0.1:8558` on the HA host and stores a private session in add-on data. Uses EZVIZ cloud (not local/offline RTSP).
 - The GitHub repository must be **Public** before Home Assistant OS can install it from the community store without GitHub authentication.
 
@@ -25,7 +27,7 @@ Add this repository in Home Assistant → Apps / Add-on Store → Repositories:
 https://github.com/artepe/ezviz-bc1-w2h-home-assistant.
 ```
 
-**go2rtc source for Pi-only testing** (same BC1 serial as add-on configuration):
+**go2rtc source for working Pi-only streaming** (same BC1 serial as add-on configuration):
 
 ```yaml
 streams:
@@ -33,13 +35,13 @@ streams:
     - ffmpeg:http://127.0.0.1:8558/YOUR_HUB_SERIAL-YOUR_BC1_SERIAL.ts#video=copy
 ```
 
-Keep the existing Lovelace WebRTC card. Do not remove your working Mac configuration until the Pi test works.
+Use your existing Lovelace WebRTC card with `url: ezviz_bc1`. For safe migration, keep the MacBook source as a separate backup until your Pi dashboard is verified.
 
 ### New in v0.1.2: prebuilt ARM64 image
 
 GitHub Actions **successfully built and published** `ghcr.io/artepe/ezviz-bc1-w2h:0.1.2` for Raspberry Pi 5. The add-on can download the Docker image rather than locally building it.
 
-**The GHCR package must be set Public** (GitHub profile → Packages → `ezviz-bc1-w2h` → Package settings → Change visibility). The image's runtime on the Pi and EZVIZ authentication are **not yet verified**.
+The prebuilt GHCR package was **downloaded and installed successfully** on the test Pi. The original build attempt using Alpine `apk` on the Pi failed due to package-index network errors; GitHub Actions built the working image off-device.
 
 [Build workflow](.github/workflows/build-ezviz-image.yml) · [Pi add-on instructions](ezviz_bc1_w2h/DOCS.md)
 
@@ -50,18 +52,18 @@ GitHub Actions **successfully built and published** `ghcr.io/artepe/ezviz-bc1-w2
 | Camera | **EZVIZ BC1** battery camera |
 | Base station | **EZVIZ W2H** |
 | Automation host | **Home Assistant OS on Raspberry Pi 5** |
-| Python proxy | **pyEzvizApi** cloud VTM stream proxy on macOS |
+| Python proxy | **pyEzvizApi** running directly in a Home Assistant OS add-on on **Raspberry Pi 5**; original MacBook proxy also worked |
 | Media relay | **go2rtc** Home Assistant add-on |
 | Dashboard | **HACS WebRTC Camera** + Lovelace |
 | Video | **H.264 at 1280 × 720** |
 | Audio | **AAC** detected in a direct clip; audio disabled in the working go2rtc source |
 | Saved clip | Requested 10 seconds; observed **7.69 seconds of playable media** |
-| Live stream | **Working in go2rtc web player and Home Assistant WebRTC card** |
+| Live stream | **Pi-hosted camera source working in go2rtc (2026-10-11)**; WebRTC Lovelace card was verified previously with Mac source |
 | Separate media decryption code | **Not needed on the tested clear-media stream path** |
 
 One BC1 stream is end-to-end verified. Recognition of another camera on the same hub does **not** yet prove its video stream works. Results may vary by camera firmware, cloud region, account, battery state, and availability.
 
-## How this works
+## How the working Pi-only setup works
 
 ```text
 EZVIZ BC1 battery camera
@@ -73,19 +75,56 @@ EZVIZ W2H hub
 EZVIZ cloud authentication + VTM video streaming
          │
          ▼
-MacBook / Python 3.12 / pyEzvizApi
-  `pyezvizapi ... stream proxy`
-  HTTP MPEG-TS :8558 (trusted LAN only)
+Raspberry Pi 5 / Home Assistant OS
+  experimental EZVIZ BC1 / W2H add-on v0.1.2
+  pyEzvizApi cloud proxy → HTTP MPEG-TS 127.0.0.1:8558
          │
          ▼
-Raspberry Pi 5 / Home Assistant OS / go2rtc + FFmpeg
-  H.264 video copied, audio omitted
+go2rtc add-on (host network)
+  FFmpeg H.264 video copy, no audio
          │
          ▼
-Home Assistant WebRTC Lovelace camera card
+WebRTC Camera Lovelace card
 ```
 
-The BC1 does not need a native RTSP endpoint for this setup. The Python proxy obtains the live stream from EZVIZ cloud, and go2rtc presents it to the Home Assistant dashboard.
+**No native RTSP/ONVIF camera connection needed.** Both the EZVIZ proxy and the go2rtc add-on use host networking; the loopback address stays on the Pi.
+
+### Quick start: Raspberry Pi 5 / Home Assistant OS (verified go2rtc live picture)
+
+1. In Home Assistant **Apps / Add-on Store → Repositories** add this repository. Install **EZVIZ BC1 / W2H Cloud Proxy (TEST)**, version **0.1.2**. The prebuilt Linux/ARM64 image is provided by GitHub Actions; no Alpine `apk` image build on the Pi is necessary.
+2. In the add-on **Configuration**, enter `camera_serial` (the BC1 subcamera serial including hub prefix, not just the W2H hub), EZVIZ `username` and `password`; leave `force_relogin: false`, `restart_delay: 30`. Never share credentials or account tokens.
+3. Start the add-on. Its log should show **`EZVIZ token saved in private add-on storage`** and **`Proxy process started`**.
+4. Install/configure the stable [go2rtc add-on](https://github.com/AlexxIT/hassio-addons). In **go2rtc → config**, set (or update) `ezviz_bc1`, keeping other streams unchanged:
+
+```yaml
+streams:
+  ezviz_bc1:
+    - ffmpeg:http://127.0.0.1:8558/YOUR_W2H_SERIAL-YOUR_BC1_SERIAL.ts#video=copy
+```
+
+5. Save and restart go2rtc if required. Open **ezviz_bc1 → stream** in go2rtc's Web UI. The **Pi-hosted live image was verified working here on 2026-10-11**.
+6. Install the [HACS WebRTC Camera integration](https://github.com/AlexxIT/WebRTC), connect to the existing go2rtc service, and add the following **Manual** Lovelace card. The previous MacBook-proxy WebRTC card worked; confirm the card on your own Pi-only configuration.
+
+```yaml
+type: vertical-stack
+cards:
+  - type: markdown
+    content: |
+      ## 📹 EZVIZ BC1 / W2H
+      **Live camera – Raspberry Pi 5**
+      EZVIZ cloud → go2rtc → WebRTC
+  - type: custom:webrtc-camera
+    url: ezviz_bc1
+    mode: mse
+    media: video
+    ui: true
+    muted: true
+    title: EZVIZ BC1 – LIVE
+```
+
+**See the detailed [Pi add-on installation guide](ezviz_bc1_w2h/DOCS.md).** A different stream name such as `ezviz_bc1_pi` is also valid, but its Lovelace `url` must match.
+
+## MacBook-based method (tested fallback)
 
 ## Quick start — verified MacBook + Home Assistant setup
 
@@ -199,8 +238,9 @@ Home Assistant Generic Camera reported `Stream network error` or `Timeout while 
 - [x] H.264 MPEG-TS playback on macOS
 - [x] go2rtc video stream on Home Assistant OS / Raspberry Pi 5
 - [x] HACS WebRTC Lovelace live-view card
-- [ ] Independent Python proxy running on Raspberry Pi 5 without the Mac
-- [x] First experimental supervised Home Assistant add-on source published (**Pi build not tested**)
+- [x] Pi-hosted cloud proxy + go2rtc **live picture verified 2026-10-11**, MacBook not needed as stream proxy
+- [x] Prebuilt GitHub Actions ARM64 image, add-on v0.1.2 installed and initial EZVIZ login verified on Raspberry Pi 5
+- [ ] Verify Pi-only Lovelace playback, persistence across a Pi reboot, and multi-hour stability
 - [ ] Separate live-stream verification for a second BC1
 - [ ] Audio remux/transcoding and stability/battery testing
 - [ ] On-demand wake-up integration
@@ -224,4 +264,4 @@ This repository documents an integration procedure and includes original helper 
 
 This repository's MIT license covers its original content only; upstream software retains its respective licenses.
 
-**Status: working community proof of concept on EZVIZ BC1 + W2H with MacBook proxy.**
+**Status (2026-10-11): working Raspberry Pi 5 cloud video proof of concept (go2rtc live confirmed); WebRTC Lovelace card supplied. Experimental: long-term operation and reboot recovery not yet tested.**
