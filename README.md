@@ -9,13 +9,13 @@
 >
 > This is **not an offline/local-only video solution**. A fully Raspberry Pi–hosted Python proxy / standalone add-on is **not yet implemented or tested**.
 
-## Raspberry Pi 5 add-on — experimental test v0.1.1
+## Raspberry Pi 5 add-on — experimental test v0.1.2
 
 **New test version is available in [`ezviz_bc1_w2h/`](ezviz_bc1_w2h/).** It aims to run the cloud video proxy **directly on Raspberry Pi 5 / Home Assistant OS**, so that the MacBook is no longer required.
 
 - **[Finnish installation + options](ezviz_bc1_w2h/DOCS.md)** — detailed Pi setup and safe rollback.
 - Source: [Dockerfile](ezviz_bc1_w2h/Dockerfile), [config.yaml](ezviz_bc1_w2h/config.yaml), [runner.py](ezviz_bc1_w2h/runner.py).
-- Status: **experimental and NOT yet built/tested on Raspberry Pi 5**. The MacBook method below remains the verified working version.
+- Status: **prebuilt on GitHub Actions; NOT yet installed/tested on Raspberry Pi 5**. The MacBook method below remains the verified working version.
 - Safety: binds the proxy to `127.0.0.1:8558` on the HA host and stores a private session in add-on data. Uses EZVIZ cloud (not local/offline RTSP).
 - The GitHub repository must be **Public** before Home Assistant OS can install it from the community store without GitHub authentication.
 
@@ -34,6 +34,14 @@ streams:
 ```
 
 Keep the existing Lovelace WebRTC card. Do not remove your working Mac configuration until the Pi test works.
+
+### New in v0.1.2: prebuilt ARM64 image
+
+GitHub Actions **successfully built and published** `ghcr.io/artepe/ezviz-bc1-w2h:0.1.2` for Raspberry Pi 5. The add-on can download the Docker image rather than locally building it.
+
+**The GHCR package must be set Public** (GitHub profile → Packages → `ezviz-bc1-w2h` → Package settings → Change visibility). The image's runtime on the Pi and EZVIZ authentication are **not yet verified**.
+
+[Build workflow](.github/workflows/build-ezviz-image.yml) · [Pi add-on instructions](ezviz_bc1_w2h/DOCS.md)
 
 ## Confirmed hardware and results
 
