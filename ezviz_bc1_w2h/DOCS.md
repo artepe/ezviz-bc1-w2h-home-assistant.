@@ -1,6 +1,6 @@
 # EZVIZ BC1 / W2H Cloud Proxy — TEST v0.1.2
 
-**Tested on Raspberry Pi 5 / Home Assistant OS on 2026-10-11:** prebuilt v0.1.2 image installed; EZVIZ login succeeded; private token was saved; Python cloud proxy started; the **BC1 live camera appeared in go2rtc using the Raspberry Pi loopback source**. The old MacBook proxy remains a tested fallback. This is still experimental: reboot recovery, multi-hour reliability, Pi-only Lovelace playback and second-camera operation have not yet been verified.
+**Tested on Raspberry Pi 5 / Home Assistant OS on 2026-10-11:** prebuilt v0.1.2 image installed; EZVIZ login succeeded; private token was saved; Python cloud proxy started; the **BC1 live camera appeared in go2rtc AND in the Home Assistant Lovelace WebRTC card using the Raspberry Pi loopback source**. The old MacBook proxy remains an optional fallback. This is still experimental: reboot recovery, multi-hour reliability, cloud token renewal and second-camera operation have not yet been verified.
 
 ## Mikä tämä on?
 
@@ -51,7 +51,7 @@ Tässä käytetään `127.0.0.1`, koska **sekä tämä lisäosa että AlexxIT/go
 
 `#video=copy` on todennettu videoasetus. `#audio=copy` antoi MacBook/Pi-välitysketjussa virheen `AAC with no global headers is currently not supported`. Toimivaksi todettu asetus välittää tässä vain videon.
 
-Testaa ensin go2rtc:n oma **ezviz_bc1 → stream** (**Pi-versiolla vahvistettu toimivaksi**), sitten Home Assistantin Lovelace-kortti (Pi-versiolla varmistettava erikseen):
+Testaa ensin go2rtc:n oma **ezviz_bc1 → stream**, sitten Home Assistantin Lovelace-kortti. **Molemmat toimivat Pi 5:n videopalvelimella 11.10.2026 toteutetussa testissä:**
 
 ```yaml
 type: custom:webrtc-camera
@@ -64,7 +64,7 @@ title: EZVIZ BC1 – Live
 
 ### Valmis Lovelace-valvomokortti
 
-Alla on hieman näyttävämpi manuaalinen Lovelace-kortti. Asenna ensin HACS [AlexxIT/WebRTC](https://github.com/AlexxIT/WebRTC) ja määritä WebRTC-integraatio käyttämään go2rtc:tä.
+Alla on testatussa järjestelmässä toimiva manuaalinen Lovelace-kortti. Asenna ensin HACS [AlexxIT/WebRTC](https://github.com/AlexxIT/WebRTC) ja määritä WebRTC-integraatio käyttämään go2rtc:tä.
 
 ```yaml
 type: vertical-stack
@@ -103,6 +103,10 @@ streams:
 
 **Älä lähetä kuvakaappauksissa salasanoja, lisäosan `options.json`-tiedostoa, `ezviz_token.json`-tiedostoa tai EZVIZ-istunto-URL:ia.** Kolmannen osapuolen kirjaston virhelokissa voi esiintyä tunnuksia, joten lisäosa piilottaa sen suoran tulosteen.
 
+## Testausraportti
+
+Koko Raspberry Pi 5 -ketjun onnistunut testi, mukaan lukien Home Assistantin Lovelace-kortti, on dokumentoitu englanniksi: [End-to-end verification, 2026-10-11](../docs/VERIFIED_PI5_2026-10-11.md).
+
 ## Technical details (English)
 
 - **Architecture:** aarch64 only (Raspberry Pi 5).
@@ -113,8 +117,8 @@ streams:
 - **Token:** persisted under private add-on `/data`.
 - **Process monitoring:** proxy process automatically restarts on exit with a configurable delay.
 - **Logging:** raw dependency error messages suppressed because they can contain session tokens.
-- **Scope:** one BC1 camera per add-on instance. One camera's live feed has been verified from the Pi add-on through go2rtc; Lovelace has also been verified using the previous MacBook proxy.
-- **Limitations:** Pi install, first-login, token persistence and go2rtc live picture **verified 2026-10-11**. Pi-only Lovelace view, boot recovery, multi-hour uptime, token renewal, second-camera support and battery impact remain unverified. No interactive MFA login or audio in the verified video pipeline.
+- **Scope:** one BC1 camera per add-on instance. One BC1 camera's live feed has been verified from the Pi add-on through go2rtc AND the Home Assistant Lovelace WebRTC card.
+- **Limitations:** Pi install, first-login, token persistence, go2rtc live picture and **Pi-only Lovelace live view all verified 2026-10-11**. Boot recovery, multi-hour uptime, token renewal, second-camera support and battery impact remain unverified. No interactive MFA login or audio in the verified video pipeline.
 
 This add-on is a **working initial Pi proof of concept**, not a production-ready integration.
 
