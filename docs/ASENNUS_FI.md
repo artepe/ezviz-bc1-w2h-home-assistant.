@@ -1,16 +1,21 @@
 # EZVIZ BC1 + W2H – asennus Home Assistantiin
 
+> **Päivitys 11.10.2026:** EZVIZ BC1 + W2H -kameran livekuva **toimii nyt Raspberry Pi 5:llä ilman MacBookin videopalvelinta**. GitHub Actionsissa rakennettu Home Assistant -lisäosa v0.1.2 asennettiin Pi 5:lle, EZVIZ-kirjautuminen ja istuntotunnisteen tallennus onnistuivat, ja kuva näkyi go2rtc:n live-soittimessa. **Ensisijainen asennus:** [Raspberry Pi 5 -lisäosan ohje](../ezviz_bc1_w2h/DOCS.md). Alla oleva MacBook-ohje jää varavaihtoehdoksi.
+
+
 ## Mitä tämä tekee?
 
 **EZVIZ BC1** -akkukamera on yhdistetty **EZVIZ W2H** -tukiasemaan. Kameran oman RTSP/ONVIF-portin puuttuminen ei estä tätä ratkaisua, koska video haetaan **EZVIZin pilvestä** käyttäjän omalla luvallisella kirjautumisella.
 
-Todennettu ketju:
+**Ensisijainen toimiva Pi-ketju:**
 
-`BC1 → W2H → EZVIZ cloud → pyEzvizApi (MacBook) → HTTP MPEG-TS → go2rtc (Home Assistant OS / Pi 5) → WebRTC-kortti`
+`BC1 → W2H → EZVIZ cloud → pyEzvizApi (Raspberry Pi 5:n HA-lisäosa) → 127.0.0.1:8558 → go2rtc → WebRTC-kortti`
 
-**Tärkeää:** MacBookin täytyy olla päällä niin kauan kuin Python-videopalvelin pyörii siinä. Raspberry Pi:llä yksinään toimivaa versiota ei ole vielä tehty eikä testattu.
+**Vanha, myös todistettu vaihtoehto:** `BC1 → W2H → EZVIZ cloud → pyEzvizApi (MacBook) → go2rtc Pi:llä → WebRTC-kortti`. MacBook tarvitsee olla käynnissä vain jos valitset Mac-välityksen. Pi-videon **go2rtc-kuva on todettu toimivaksi**, mutta Pi-version pitkäaikainen toiminta ja Lovelace-kortin lopputestaus ovat vielä kesken.
 
-## 1. Asenna pyEzvizApi MacBookiin
+## Vanhat MacBook-ohjeet (varayhteys)
+
+### 1. Asenna pyEzvizApi MacBookiin
 
 Asenna ensin Homebrew (https://brew.sh) ja sitten:
 
@@ -38,7 +43,7 @@ Kehote pitää salasanan pois komentohistoriasta. Ohjelman käynnistysargumentti
 
 Varmista laiteluettelosta BC1:n **alakameran tunnus**, joka voi olla muotoa `W2H-SERIAL-BC1-SERIAL`. Pelkkä W2H:n sarjanumero ei välttämättä kohdistu oikeaan kameraan.
 
-## 2. Käynnistä livevideopalvelin MacBookilla
+### 2. Käynnistä livevideopalvelin MacBookilla
 
 Selvitä MacBookin paikallinen IP:
 
@@ -61,7 +66,7 @@ Pidä Terminal auki. Osoite on nyt `http://OMA_MACBOOK_IP:8558/OMA_W2H-OMA_BC1.t
 
 **Älä avaa porttia 8558 internetiin!** HTTP-virta ei kysy omaa salasanaa.
 
-## 3. Tarkista yhteys Home Assistantista
+### 3. Tarkista yhteys Home Assistantista
 
 Avaa Home Assistantin Terminal-lisäosa ja testaa:
 
@@ -73,7 +78,7 @@ curl -sS --connect-timeout 5 --max-time 15 -o /tmp/bc1-test.ts \
 
 `HTTP 200` ja vastaanotetut tavut todistavat verkkoyhteyden; jatkuvan videovirran 15 sekunnin aikakatkaisu on normaalia.
 
-## 4. Määritä go2rtc
+### 4. Määritä go2rtc MacBookin lähteellä
 
 Home Assistant → **Asetukset → Sovelluskauppa**: lisää lisäosarepo `https://github.com/AlexxIT/hassio-addons`, asenna vakaa **go2rtc**, käynnistä ja avaa Web UI. Valitse **config** ja lisää:
 
@@ -87,7 +92,7 @@ Tallenna. Go2rtc:n omalla pääsivulla klikkaa `ezviz_bc1 → stream`. Kun kuva 
 
 Älä lisää `#audio=copy`: tässä testissä AAC-äänen alkuotsakkeet aiheuttivat virheen `AAC with no global headers is currently not supported`. Videon kopioiminen sellaisenaan toimii.
 
-## 5. Lisää kamera Lovelaceen
+### 5. Lisää kamera Lovelaceen
 
 HACS: etsi **WebRTC** (tekijä AlexxIT; repo `https://github.com/AlexxIT/WebRTC`), asenna ja käynnistä Home Assistant uudelleen. Lisää **WebRTC** kohdassa **Asetukset → Laitteet ja palvelut**. Osoitteeksi `http://localhost:1984` siinä kokoonpanossa, jossa go2rtc on Home Assistantin samassa palvelinympäristössä.
 
@@ -114,4 +119,5 @@ Katso [vianhaku](TROUBLESHOOTING.md). Varmista MacBookin oma Terminal, palvelime
 - Akkukameran jatkuva katselu kuluttaa akkua.
 - Videon ääntä ei ole mukana testatussa go2rtc-kortissa.
 - Ensimmäinen BC1 testattu; toisen kameran pysyvää liveasetusta ei ole vielä todennettu.
-- Raspberry Pi:hin itsenäisesti asennettua Python-videopalvelinta ei ole vielä toteutettu.
+- Raspberry Pi:hin itsenäisesti asennettu Python-videopalvelin on **toiminut käytännössä go2rtc:n livekuvan lähteenä 11.10.2026**. Vielä testaamatta: pitkäaikainen vakaus, kameran herätys, ääni sekä käynnistyksen ja tokenin palautuminen.
+- **Valmis Raspberry Pi:n Lovelace-kortti:** [examples/lovelace-webrtc.yaml](../examples/lovelace-webrtc.yaml).
