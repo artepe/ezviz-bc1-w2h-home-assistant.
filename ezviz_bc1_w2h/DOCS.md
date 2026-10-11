@@ -1,10 +1,10 @@
 # EZVIZ BC1 / W2H Cloud Proxy — TEST v0.1.2
 
-**Experimental Raspberry Pi 5 add-on. The image is built and published successfully by GitHub Actions, but it is NOT yet installed or runtime-tested on Raspberry Pi 5.** The existing MacBook + go2rtc + Lovelace workflow is verified and remains the fallback.
+**Tested on Raspberry Pi 5 / Home Assistant OS on 2026-10-11:** prebuilt v0.1.2 image installed; EZVIZ login succeeded; private token was saved; Python cloud proxy started; the **BC1 live camera appeared in go2rtc using the Raspberry Pi loopback source**. The old MacBook proxy remains a tested fallback. This is still experimental: reboot recovery, multi-hour reliability, Pi-only Lovelace playback and second-camera operation have not yet been verified.
 
 ## Mikä tämä on?
 
-Tämä Home Assistant OS -lisäosa yrittää ajaa nykyisen **EZVIZ BC1 -akkukameran / W2H-tukiaseman** Python-videopalvelimen suoraan **Raspberry Pi 5:llä**, ilman MacBookia.
+Tämä Home Assistant OS -lisäosa ajaa testatussa kokoonpanossa **EZVIZ BC1 -akkukameran / W2H-tukiaseman** Python-videopalvelimen suoraan **Raspberry Pi 5:llä**, ilman MacBookia.
 
 Virta kulkee **EZVIZ-pilven** kautta:
 
@@ -21,7 +21,7 @@ EZVIZ BC1 + W2H -> EZVIZ cloud -> pyEzvizApi on Pi 5
 2. Home Assistant → **Settings → Apps / Add-on Store → ⋮ → Repositories**: lisää
    `https://github.com/artepe/ezviz-bc1-w2h-home-assistant.`
 3. Päivitä sovelluskauppa ja valitse **EZVIZ BC1 / W2H Cloud Proxy (TEST)**.
-4. Asenna ja odota ensimmäisen Python/FFmpeg-Docker-imagen rakentumista. Raspberry Pi 5:llä tämä voi kestää useita minuutteja.
+4. Asenna lisäosa. Versiosta **0.1.2** alkaen Pi **lataa valmiin ARM64-Docker-imagen** GitHub Container Registrystä, eikä sen tarvitse rakentaa imagea Alpine-paketeista. Tämä kiersi testikoneen Docker-ympäristön APKINDEX/DNS-latausongelman.
 5. Avaa lisäosan **Configuration** ja syötä:
    - **camera_serial**: BC1-alakameran koko tunnus, esimerkiksi `HUB_SERIAL-CAMERA_SERIAL` (ei pelkkä W2H:n tunnus).
    - **username**: EZVIZ-tilisi sähköpostiosoite.
@@ -29,7 +29,7 @@ EZVIZ BC1 + W2H -> EZVIZ cloud -> pyEzvizApi on Pi 5
    - **force_relogin**: `false`
    - **restart_delay**: `30`
 6. **Save → Start → Log**. Etsi lokista `EZVIZ token saved` ja `Proxy process started`.
-7. Tarkista go2rtc:n yhteys alla olevan YAML:n avulla ja vasta sitten sammuta MacBookin vanha videopalvelin.
+7. Tarkista go2rtc:n yhteys alla olevan YAML:n avulla. BC1:n livekuva näkyi tällä asetuksella Pi:n go2rtc:ssä **11.10.2026**; vasta tämän jälkeen vanhan MacBook-videopalvelimen voi pysäyttää.
 
 **Huomio tunnuksista:** Home Assistantin add-on Configuration tallentaa tunnukset asetuksiinsa, joita voidaan varmuuskopioida. Älä jaa asetustiedostoja tai varmuuskopioita. Istuntotunniste tallennetaan lisäosan yksityiseen `/data/ezviz_token.json`-tiedostoon, jota ei julkaista GitHubiin. Voit poistaa käyttäjätunnuksen ja salasanan asetuksista onnistuneen ensikirjautumisen jälkeen, jos istunto jatkaa toimintaansa. Kun istunto vanhenee, anna ne uudelleen ja valitse `force_relogin: true` yhden käynnistyksen ajaksi; palauta sen jälkeen `false`.
 
@@ -49,9 +49,9 @@ Vaihda `YOUR_HUB_SERIAL-YOUR_BC1_SERIAL` samaan koko tunnukseen kuin lisäosan `
 
 Tässä käytetään `127.0.0.1`, koska **sekä tämä lisäosa että AlexxIT/go2rtc-lisäosa käyttävät Home Assistant OS:n host-verkkoa**. Videopalvelin on tarkoituksella vain paikallisesti saatavilla. Älä lisää porttiohjausta internetistä!
 
-`#video=copy` on todennettu videoasetus. `#audio=copy` antoi MacBook/Pi-välitysketjussa virheen `AAC with no global headers is currently not supported`. Testiversio välittää toistaiseksi vain videon.
+`#video=copy` on todennettu videoasetus. `#audio=copy` antoi MacBook/Pi-välitysketjussa virheen `AAC with no global headers is currently not supported`. Toimivaksi todettu asetus välittää tässä vain videon.
 
-Testaa ensin go2rtc:n oma **ezviz_bc1 → stream**, sitten Home Assistantin jo toimiva Lovelace-kortti:
+Testaa ensin go2rtc:n oma **ezviz_bc1 → stream** (**Pi-versiolla vahvistettu toimivaksi**), sitten Home Assistantin Lovelace-kortti (Pi-versiolla varmistettava erikseen):
 
 ```yaml
 type: custom:webrtc-camera
@@ -62,10 +62,33 @@ ui: true
 title: EZVIZ BC1 – Live
 ```
 
+### Valmis Lovelace-valvomokortti
+
+Alla on hieman näyttävämpi manuaalinen Lovelace-kortti. Asenna ensin HACS [AlexxIT/WebRTC](https://github.com/AlexxIT/WebRTC) ja määritä WebRTC-integraatio käyttämään go2rtc:tä.
+
+```yaml
+type: vertical-stack
+cards:
+  - type: markdown
+    content: |
+      ## 📹 EZVIZ BC1 / W2H
+      **Livekamera – Raspberry Pi 5**
+      Videovirta: EZVIZ Cloud → go2rtc → WebRTC
+  - type: custom:webrtc-camera
+    url: ezviz_bc1
+    mode: mse
+    media: video
+    ui: true
+    muted: true
+    title: EZVIZ BC1 – LIVE
+```
+
+Jos streamin nimi on `ezviz_bc1_pi`, vaihda vain `url: ezviz_bc1_pi`. Huomio: pitkäaikainen livekatselu voi kuluttaa BC1-akkua.
+
 ## Jos testi epäonnistuu
 
 - Jos lisäosa ei näy: varmista että GitHub-repo on **Public**, osoite on täsmälleen oikein (repon nykyisessä nimessä on loppupiste), ja päivitä sovelluskauppa.
-- Jos Docker-imagen rakentaminen epäonnistuu: katso **build logs**. Tämä on ensimmäinen testiversio; Alpine 3.22/Python 3.12 -riippuvuuksia ei ole vielä vahvistettu Pi 5:llä.
+- Jos vanhan version Docker-imagen rakentaminen epäonnistui Alpine/APKINDEX-virheeseen, päivitä lisäosakauppa ja asenna **v0.1.2**, joka lataa esirakennetun ARM64-imagen. Jos se ei lataudu, tarkista Supervisorin lokit ja GitHub-paketin julkinen näkyvyys.
 - Jos kirjautuminen epäonnistuu: tarkista EZVIZ-tunnukset, pilviyhteys, DNS ja mahdollinen MFA.
 - Jos kamera ei vastaa: BC1 saattaa olla lepotilassa; avaa kameranäkymä virallisesta EZVIZ-sovelluksesta ja kokeile uudestaan.
 - Jos lataat kuvaa, mutta se ei näy: katso go2rtc-logi ja varmista, että MacBookin IP on poistettu `ezviz_bc1`-määrityksestä.
@@ -90,12 +113,12 @@ streams:
 - **Token:** persisted under private add-on `/data`.
 - **Process monitoring:** proxy process automatically restarts on exit with a configurable delay.
 - **Logging:** raw dependency error messages suppressed because they can contain session tokens.
-- **Scope:** one BC1 camera per add-on instance. Only one camera's live feed has been end-to-end verified with the previous MacBook chain.
-- **Limitations:** Image build verified in GitHub Actions; Pi runtime not verified, no interactive MFA login, long-term token refresh not validated, no audio, no battery-saving wake automation.
+- **Scope:** one BC1 camera per add-on instance. One camera's live feed has been verified from the Pi add-on through go2rtc; Lovelace has also been verified using the previous MacBook proxy.
+- **Limitations:** Pi install, first-login, token persistence and go2rtc live picture **verified 2026-10-11**. Pi-only Lovelace view, boot recovery, multi-hour uptime, token renewal, second-camera support and battery impact remain unverified. No interactive MFA login or audio in the verified video pipeline.
 
-This folder is a prototype for Home Assistant OS, **not a production-ready integration**.
+This add-on is a **working initial Pi proof of concept**, not a production-ready integration.
 
-## Prebuilt container image (v0.1.2)
+## Prebuilt container image (v0.1.2, installed successfully on Pi)
 
 The GitHub Actions job **successfully built and published** `ghcr.io/artepe/ezviz-bc1-w2h:0.1.2` for linux/arm64. The add-on's `config.yaml` points to this image, avoiding the Pi's Alpine `apk` networking failure.
 
