@@ -1,4 +1,4 @@
-# EZVIZ BC1 / W2H Cloud Proxy — TEST v0.1.0
+# EZVIZ BC1 / W2H Cloud Proxy — TEST v0.1.1
 
 **Experimental Raspberry Pi 5 add-on. Pi image build and runtime are NOT yet verified.** The existing MacBook + go2rtc + Lovelace workflow is verified and remains the fallback.
 
