@@ -9,7 +9,7 @@
 >
 > This is **not an offline/local-only video solution**. A fully Raspberry Pi–hosted Python proxy / standalone add-on is **not yet implemented or tested**.
 
-## Raspberry Pi 5 add-on — experimental test v0.1.0
+## Raspberry Pi 5 add-on — experimental test v0.1.1
 
 **New test version is available in [`ezviz_bc1_w2h/`](ezviz_bc1_w2h/).** It aims to run the cloud video proxy **directly on Raspberry Pi 5 / Home Assistant OS**, so that the MacBook is no longer required.
 
