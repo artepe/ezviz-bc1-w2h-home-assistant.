@@ -4,7 +4,7 @@
 
 Run [pyEzvizApi](https://github.com/RenierM26/pyEzvizApi) cloud live streaming on Raspberry Pi 5, replacing the currently verified MacBook relay. Requires EZVIZ account, W2H hub, BC1 subcamera, internet and go2rtc.
 
-**GitHub Actions built and smoke-tested the ARM64 image; it is not yet installed on Raspberry Pi.**
+**Working proof of concept, verified 2026-10-11 on Raspberry Pi 5:** ARM64 image installed, EZVIZ login succeeded, private session was saved, proxy started and BC1 **live video appeared in go2rtc** using the loopback stream. Pi-only Lovelace playback and multi-day reliability still need testing.
 
 [Complete Finnish setup / English technical notes](DOCS.md)
 
@@ -16,7 +16,7 @@ streams:
     - ffmpeg:http://127.0.0.1:8558/YOUR_HUB_SERIAL-YOUR_BC1_SERIAL.ts#video=copy
 ```
 
-The HACS WebRTC Camera card remains unchanged. No external internet port forwarding. No native RTSP from the W2H hub.
+The HACS WebRTC Camera card uses `url: ezviz_bc1`; use [the complete YAML](../examples/lovelace-webrtc.yaml). No external internet port forwarding. No native RTSP from the W2H hub.
 
 ## Prebuilt container image (v0.1.2)
 
