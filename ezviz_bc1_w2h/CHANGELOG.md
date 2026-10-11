@@ -1,12 +1,12 @@
 # Changelog
 
-## 2026-10-11 — Raspberry Pi 5 real-hardware test passed (v0.1.2)
+## 2026-10-11 — Complete end-to-end Pi 5 + Lovelace validation (v0.1.2)
 
 - Confirmed Home Assistant OS / Pi 5 installs the prebuilt `ghcr.io/artepe/ezviz-bc1-w2h:0.1.2` image successfully.
 - Confirmed addon starts, authenticates to EZVIZ, writes a private session token under `/data`, and starts the `pyEzvizApi` cloud MPEG-TS proxy bound to `127.0.0.1:8558`.
-- Confirmed BC1 live image appeared in the **go2rtc browser player** using `ffmpeg:http://127.0.0.1:8558/YOUR_SERIAL.ts#video=copy`; MacBook stream proxy was no longer required.
-- Published reusable Lovelace WebRTC card and new Pi-first setup guide.
-- Remaining validation: Pi-only dashboard playback, restart-on-boot, session renewal, second BC1, audio, long-term uptime and battery use.
+- Confirmed BC1 live image appeared in both the **go2rtc browser player AND the Home Assistant Lovelace WebRTC card** using `ffmpeg:http://127.0.0.1:8558/YOUR_SERIAL.ts#video=copy`; MacBook stream proxy was no longer required.
+- Published reusable Lovelace WebRTC card, Pi-first setup guide and [verification report](../docs/VERIFIED_PI5_2026-10-11.md).
+- Remaining validation: restart-on-boot, cloud session renewal, second BC1, audio, long-term uptime and battery use.
 
 ## 0.1.2 — Prebuilt ARM64 Docker image from GitHub Actions
 
