@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.3 - Optional second BC1 camera (2026-10-12)
+
+- Added optional `camera_serial_2`; existing one-camera options remain valid.
+- Camera 1 keeps loopback port 8558. Camera 2 uses loopback port 8559.
+- Each camera has a supervised proxy with independent restart timing and a separate private token file. Initial account authentication is reused before workers start.
+- Terminate owned proxy process groups, including FFmpeg children, on shutdown or before restarting a failed worker.
+- Added 13 offline tests for configuration compatibility, private token files, camera isolation, retries and shutdown. Run these checks before the ARM64 image build.
+- Added two-camera go2rtc and Lovelace examples and upgrade instructions.
+- **Hardware validation pending:** second-camera live video, simultaneous cloud streams, reboot recovery and long-term operation. The single-camera live-video test remains the v0.1.2 result from 2026-10-11.
+
 ## 2026-10-11 — Complete end-to-end Pi 5 + Lovelace validation (v0.1.2)
 
 - Confirmed Home Assistant OS / Pi 5 installs the prebuilt `ghcr.io/artepe/ezviz-bc1-w2h:0.1.2` image successfully.

@@ -1,4 +1,6 @@
-# EZVIZ BC1 / W2H Cloud Proxy — TEST v0.1.2
+# EZVIZ BC1 / W2H Cloud Proxy - TEST v0.1.3
+
+**v0.1.3 adds an optional second camera.** The single-camera hardware test below was performed with v0.1.2. The new two-camera process supervision and token isolation have offline test coverage; second-camera live video and simultaneous viewing still require a hardware test.
 
 **Tested on Raspberry Pi 5 / Home Assistant OS on 2026-10-11:** prebuilt v0.1.2 image installed; EZVIZ login succeeded; private token was saved; Python cloud proxy started; the **BC1 live camera appeared in go2rtc AND in the Home Assistant Lovelace WebRTC card using the Raspberry Pi loopback source**. The old MacBook proxy remains an optional fallback. This is still experimental: reboot recovery, multi-hour reliability, cloud token renewal and second-camera operation have not yet been verified.
 
@@ -107,17 +109,49 @@ streams:
 
 Koko Raspberry Pi 5 -ketjun onnistunut testi, mukaan lukien Home Assistantin Lovelace-kortti, on dokumentoitu englanniksi: [End-to-end verification, 2026-10-11](../docs/VERIFIED_PI5_2026-10-11.md).
 
+## Toinen kamera (v0.1.3)
+
+Paivita olemassa oleva lisaosa versioon **0.1.3**, kun GitHub Actions -imagebuild on valmistunut. Avaa lisaosan **Configuration -> YAML** ja lisaa toinen tunnus:
+
+```yaml
+camera_serial: YOUR_HUB_SERIAL-YOUR_FIRST_CAMERA_SERIAL
+camera_serial_2: YOUR_HUB_SERIAL-YOUR_SECOND_CAMERA_SERIAL
+```
+
+Sailyta muut tilisi asetukset. Molempien kameroiden tulee nakya samalla EZVIZ-tililla. Toinen tunnus on valinnainen; sen voi jattaa pois tai tyhjaksi. Tallenna ja kaynnista lisaosa uudelleen. Ensimmainen kamera kayttaa porttia 8558 ja toinen porttia 8559.
+
+Lisaa go2rtc:n olemassa olevaan `streams:`-osaan:
+
+```yaml
+  ezviz_bc1_2:
+    - ffmpeg:http://127.0.0.1:8559/YOUR_HUB_SERIAL-YOUR_SECOND_CAMERA_SERIAL.ts#video=copy
+```
+
+Tallenna, kaynnista go2rtc uudelleen tarvittaessa ja kokeile ensin toisen kameran kuvaa sen omasta websoittimesta. Lisaa sen jalkeen dashboardille manuaalinen kortti:
+
+```yaml
+type: custom:webrtc-camera
+url: ezviz_bc1_2
+mode: mse
+media: video
+ui: true
+muted: true
+title: EZVIZ kamera 2
+```
+
+Valmiit kahden kameran esimerkit: [go2rtc](../examples/go2rtc-two-cameras.yaml) ja [dashboard](../examples/lovelace-two-cameras.yaml). Kaynnistysloki kertoo prosessien kaynnistymisesta, mutta livekuva on tarkistettava erikseen. Toisen kameran ja molempien samanaikaisen katselun toimintaa ei viela ole testattu oikealla laitteistolla.
+
 ## Technical details (English)
 
 - **Architecture:** aarch64 only (Raspberry Pi 5).
 - **Base:** pinned Home Assistant Alpine 3.22 image with Python 3.12, FFmpeg.
 - **API dependency:** pinned [pyEzvizApi revision](https://github.com/RenierM26/pyEzvizApi/commit/6df75d95a2ee6a68fb71446ee74a55572e2014ea).
 - **Source:** EZVIZ VTM cloud, not W2H local RTSP.
-- **Bind:** 127.0.0.1:8558, `host_network: true`; no public video service.
-- **Token:** persisted under private add-on `/data`.
-- **Process monitoring:** proxy process automatically restarts on exit with a configurable delay.
+- **Bind:** camera 1 on 127.0.0.1:8558; optional camera 2 on 127.0.0.1:8559. `host_network: true`; no public video service.
+- **Token:** persisted under private app `/data`. The first session remains in `ezviz_token.json`; the second uses its own copy in `ezviz_token_camera_2.json` so the proxies do not write the same token file concurrently. The second copy is refreshed from the first before workers start.
+- **Process monitoring:** each proxy automatically restarts on exit with its own configurable retry delay. Shutdown terminates both owned process groups, including FFmpeg children.
 - **Logging:** raw dependency error messages suppressed because they can contain session tokens.
-- **Scope:** one BC1 camera per add-on instance. One BC1 camera's live feed has been verified from the Pi add-on through go2rtc AND the Home Assistant Lovelace WebRTC card.
+- **Scope:** up to two BC1 cameras per app instance in v0.1.3. One BC1 camera's live feed was verified on v0.1.2 from the Pi app through go2rtc AND the Home Assistant Lovelace WebRTC card. Two-camera live video remains unverified.
 - **Limitations:** Pi install, first-login, token persistence, go2rtc live picture and **Pi-only Lovelace live view all verified 2026-10-11**. Boot recovery, multi-hour uptime, token renewal, second-camera support and battery impact remain unverified. No interactive MFA login or audio in the verified video pipeline.
 
 This add-on is a **working initial Pi proof of concept**, not a production-ready integration.
@@ -128,4 +162,4 @@ The GitHub Actions job **successfully built and published** `ghcr.io/artepe/ezvi
 
 **Important:** GitHub Container Registry packages may start **Private**, even when this code repository is Public. To allow Home Assistant OS to pull the image, open **GitHub → your profile → Packages → ezviz-bc1-w2h → Package settings → Change visibility → Public**. This publishes the compiled image, **not** your EZVIZ account information.
 
-Run `ha store reload` and check `version_latest: 0.1.2` before installing. If the image pull fails with access denied, check the GHCR package visibility. If it fails for DNS/connectivity, inspect the Supervisor logs.
+For the two-camera update, run `ha store reload` and check `version_latest: 0.1.3` before updating the app. Wait for its GitHub Actions build to succeed so the matching image is available. If the image pull fails with access denied, check the GHCR package visibility. If it fails for DNS/connectivity, inspect the Supervisor logs.

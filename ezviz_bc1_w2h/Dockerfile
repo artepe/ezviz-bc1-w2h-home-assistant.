@@ -3,7 +3,7 @@
 # Workaround for Alpine APKINDEX temporary mirror/network errors seen on Pi 5.
 FROM ghcr.io/home-assistant/aarch64-base:3.22
 
-ARG BUILD_VERSION=0.1.1
+ARG BUILD_VERSION=0.1.3
 ARG BUILD_ARCH=aarch64
 
 LABEL io.hass.version="${BUILD_VERSION}" \

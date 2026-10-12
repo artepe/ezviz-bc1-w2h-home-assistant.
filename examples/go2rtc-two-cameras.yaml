@@ -1,0 +1,9 @@
+# Requires EZVIZ BC1/W2H app v0.1.3 with both camera serials configured.
+# Camera 1 is camera_serial; camera 2 is camera_serial_2.
+# Keep other streams when merging this mapping into an existing config.
+# Second-camera live video and simultaneous viewing need hardware testing.
+streams:
+  ezviz_bc1:
+    - ffmpeg:http://127.0.0.1:8558/YOUR_W2H_SERIAL-YOUR_FIRST_BC1_SERIAL.ts#video=copy
+  ezviz_bc1_2:
+    - ffmpeg:http://127.0.0.1:8559/YOUR_W2H_SERIAL-YOUR_SECOND_BC1_SERIAL.ts#video=copy

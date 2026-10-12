@@ -11,7 +11,9 @@
 >
 > **Requires EZVIZ cloud / internet**. This is not native local RTSP or an offline camera connection.
 
-## Raspberry Pi 5 add-on — experimental test v0.1.2
+## Raspberry Pi 5 add-on - experimental v0.1.3
+
+**New: optional second camera.** Version 0.1.3 keeps the existing `camera_serial` stream on `127.0.0.1:8558` and adds `camera_serial_2` on `127.0.0.1:8559`. The two proxies have separate process supervision and private token files. The existing one-camera options still work. Offline lifecycle tests pass; second-camera live video and simultaneous cloud streaming still require a hardware test. The end-to-end live-video verification below applies to v0.1.2.
 
 **Tested working in [`ezviz_bc1_w2h/`](ezviz_bc1_w2h/) on Raspberry Pi 5 / Home Assistant OS.** The Pi runs the cloud video proxy directly; no MacBook is needed as a video server.
 
@@ -37,7 +39,26 @@ streams:
 
 Use your existing Lovelace WebRTC card with `url: ezviz_bc1`. **Pi-hosted Lovelace playback was confirmed working on 2026-10-11**; the MacBook is no longer required.
 
-### New in v0.1.2: prebuilt ARM64 image
+### Add a second BC1 with v0.1.3
+
+1. Update the existing **EZVIZ BC1 / W2H Cloud Proxy (TEST)** app to **0.1.3** after the [image build](.github/workflows/build-ezviz-image.yml) succeeds. Keep the first camera in `camera_serial`.
+2. In app **Configuration -> YAML**, add `camera_serial_2: YOUR_W2H_SERIAL-YOUR_SECOND_BC1_SERIAL`. Both cameras must be accessible through the same EZVIZ account. Leave the field absent or empty for one camera.
+3. Save and restart the app. Its log should report camera 1 on port 8558 and camera 2 on port 8559. Process startup alone does not verify live video.
+4. Add the second go2rtc source and test it in the go2rtc player before adding the dashboard card:
+
+```yaml
+streams:
+  ezviz_bc1:
+    - ffmpeg:http://127.0.0.1:8558/YOUR_W2H_SERIAL-YOUR_BC1_SERIAL.ts#video=copy
+  ezviz_bc1_2:
+    - ffmpeg:http://127.0.0.1:8559/YOUR_W2H_SERIAL-YOUR_SECOND_BC1_SERIAL.ts#video=copy
+```
+
+Merge these entries into the existing `streams:` mapping. Use `url: ezviz_bc1_2` in the second WebRTC card. Complete examples: [two go2rtc streams](examples/go2rtc-two-cameras.yaml) and [two Lovelace cards](examples/lovelace-two-cameras.yaml).
+
+Each camera runs through its own HTTP proxy. Keep ports 8558 and 8559 available on the HA host. A failed proxy restarts after `restart_delay` without restarting the other camera. Both cameras still depend on the EZVIZ cloud; live operation of the second camera and simultaneous viewing are not yet verified. Viewing both battery cameras continuously can increase battery use.
+
+### Prebuilt ARM64 image (introduced in v0.1.2)
 
 GitHub Actions **successfully built and published** `ghcr.io/artepe/ezviz-bc1-w2h:0.1.2` for Raspberry Pi 5. The add-on can download the Docker image rather than locally building it.
 
@@ -91,8 +112,9 @@ WebRTC Camera Lovelace card
 
 ### Quick start: Raspberry Pi 5 / Home Assistant OS (verified end-to-end, including Lovelace)
 
-1. In Home Assistant **Apps / Add-on Store → Repositories** add this repository. Install **EZVIZ BC1 / W2H Cloud Proxy (TEST)**, version **0.1.2**. The prebuilt Linux/ARM64 image is provided by GitHub Actions; no Alpine `apk` image build on the Pi is necessary.
+1. In Home Assistant **Apps / Add-on Store -> Repositories** add this repository. Install **EZVIZ BC1 / W2H Cloud Proxy (TEST)**, version **0.1.3** once its image build succeeds. The prebuilt Linux/ARM64 image is provided by GitHub Actions; no Alpine `apk` image build on the Pi is necessary.
 2. In the add-on **Configuration**, enter `camera_serial` (the BC1 subcamera serial including hub prefix, not just the W2H hub), EZVIZ `username` and `password`; leave `force_relogin: false`, `restart_delay: 30`. Never share credentials or account tokens.
+   For an optional second camera, add its full serial as `camera_serial_2` in the configuration YAML.
 3. Start the add-on. Its log should show **`EZVIZ token saved in private add-on storage`** and **`Proxy process started`**.
 4. Install/configure the stable [go2rtc add-on](https://github.com/AlexxIT/hassio-addons). In **go2rtc → config**, set (or update) `ezviz_bc1`, keeping other streams unchanged:
 
