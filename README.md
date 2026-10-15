@@ -11,7 +11,9 @@
 >
 > **Requires EZVIZ cloud / internet**. This is not native local RTSP or an offline camera connection.
 
-## Raspberry Pi 5 app - camera manager v0.2.2
+## Raspberry Pi 5 app - camera manager v0.2.3
+
+**Supervisor startup fix (0.2.3):** restore the container environment through s6's `with-contenv` before Python starts. This carries `SUPERVISOR_TOKEN` and `APP_VERSION` into the app. The repeated settings-unavailable warning now distinguishes a missing token, HTTP denial and connection failure, and reports recovery. The ARM64 workflow checks the actual default container startup as well as module/FFmpeg imports. [Current changelog](ezviz_bc1_w2h/CHANGELOG.md).
 
 **Video recovery (0.2.2):** restore the original video-only defaults after a report that the 0.2.1 audio settings stopped playback. The exact stream failure still needs a fresh go2rtc log. **Test audio** remains available, and experimental audio snippets now use a separate `_audio_test` stream and temporary card. Keep the working video stream while investigating audio. [Recovery and audio diagnostics](docs/AUDIO.md). Updating this app does not edit existing go2rtc or Lovelace configuration.
 

@@ -1,4 +1,6 @@
-# EZVIZ BC1 / W2H Cloud Proxy - camera manager v0.2.2
+# EZVIZ BC1 / W2H Cloud Proxy - camera manager v0.2.3
+
+**Supervisor-korjaus (0.2.3):** kaynnistysskripti lataa nyt s6:n tallettaman konttiympariston ennen Pythonia. Nain `SUPERVISOR_TOKEN` paasee asetusten lukijalle ja `APP_VERSION` kameranakymaan. Aiempi yleinen `Supervisor settings unavailable` -rivi peitti varsinaisen syyn; loki kertoo nyt puuttuvasta tunnisteesta, HTTP-estosta tai yhteysvirheesta ilman tunnisteen arvoa. Sama jatkuva virhe lokitetaan enintaan viiden minuutin valein, mutta yhteytta yritetaan edelleen 15 sekunnin valein.
 
 **Videon palautus (0.2.2):** oletusmallit ovat taas `#video=copy` ja `media: video`. Jos aaniasetukset pysayttivat videon, palauta nailla go2rtc- ja korttiasetukset ja kaynnista go2rtc uudelleen. **Test audio** tarkistaa lahteen. Aanen kokeiluun on erillinen `_audio_test`-stream ja valiaikainen kortti. [Palautus ja aanen vianhaku](../docs/AUDIO.md).
 

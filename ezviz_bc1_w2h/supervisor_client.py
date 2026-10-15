@@ -23,7 +23,7 @@ class SupervisorClient:
 
     def request(self, path: str, payload: dict[str, object] | None = None) -> dict:
         if not self.token:
-            raise SettingsError("Supervisor is unavailable. Open this app through Home Assistant.")
+            raise SettingsError("Supervisor token is missing from the app environment. Update and restart this app.")
         data = None if payload is None else json.dumps(payload).encode("utf-8")
         request = Request(
             f"{self.base_url}/addons/self/{path}", data=data,
@@ -37,6 +37,8 @@ class SupervisorClient:
             error.close()
             if error.code == 400:
                 raise SettingsError("Supervisor rejected the options. Reload the app store and update EZVIZ Cameras to 0.2.0 or newer.") from None
+            if error.code == 403:
+                raise SettingsError("Supervisor denied settings access (HTTP 403). Restart this app and check the Supervisor log.") from None
             raise SettingsError(f"Supervisor could not save or load settings (HTTP {error.code}). Try again.") from None
         except (OSError, URLError, ValueError, TypeError):
             raise SettingsError("Cannot reach Supervisor. Settings have not been confirmed as saved.") from None

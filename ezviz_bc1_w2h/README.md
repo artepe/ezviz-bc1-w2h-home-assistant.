@@ -1,6 +1,8 @@
 # EZVIZ BC1 / W2H Cloud Proxy (TEST)
 
-**Experimental Raspberry Pi 5 / Home Assistant OS app - version 0.2.2.**
+**Experimental Raspberry Pi 5 / Home Assistant OS app - version 0.2.3.**
+
+**Supervisor startup fix in 0.2.3:** restore the environment saved by s6 before Python starts, including the Supervisor access token and app version. The image workflow now tests the actual default container startup. Settings errors report a controlled reason without credentials or raw response bodies. See the [changelog](CHANGELOG.md).
 
 Use **Open Web UI -> Add new camera** to save cameras through Home Assistant Supervisor with readback verification. Existing camera serials and ports 8558 / 8559 remain supported. Each camera has a private token file and supervised proxy. [Current update guide](../docs/UPGRADE_0_2.md).
 
@@ -30,4 +32,4 @@ The GitHub Actions job **successfully built and published** `ghcr.io/artepe/ezvi
 
 **Important:** GitHub Container Registry packages may start **Private**, even when this code repository is Public. To allow Home Assistant OS to pull the image, open **GitHub → your profile → Packages → ezviz-bc1-w2h → Package settings → Change visibility → Public**. This publishes the compiled image, **not** your EZVIZ account information.
 
-Run `ha store reload` and check `version_latest: 0.2.2` before updating. Wait for the v0.2.2 image build to succeed first. If the image pull fails with access denied, check the GHCR package visibility. If it fails for DNS/connectivity, inspect the Supervisor logs.
+Run `ha store reload` and check `version_latest: 0.2.3` before updating. Wait for the v0.2.3 image build to succeed first. If the image pull fails with access denied, check the GHCR package visibility. If it fails for DNS/connectivity, inspect the Supervisor logs.

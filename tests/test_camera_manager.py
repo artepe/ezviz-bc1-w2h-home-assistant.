@@ -37,10 +37,13 @@ class FakeSupervisorHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         self.server.seen_headers.append(dict(self.headers))
+        if self.server.deny:
+            self.respond({"result": "error", "message": "private-account-secret"}, 403)
+            return
         if self.path == "/addons/self/info":
             self.respond({"result": "ok", "data": {"options": self.server.options}})
         elif self.path == "/addons/self/options/config":
-            self.respond({"result": "ok", "data": self.server.options})
+            self.respond({"result": "ok", "data": self.server.effective_options or self.server.options})
         else:
             self.respond({"result": "error"}, 404)
 
@@ -65,6 +68,8 @@ class SupervisorFixture(unittest.TestCase):
         }
         self.supervisor.seen_headers = []
         self.supervisor.fail = False
+        self.supervisor.deny = False
+        self.supervisor.effective_options = None
         self.supervisor.drop_cameras = False
         self.thread = threading.Thread(target=self.supervisor.serve_forever, daemon=True)
         self.thread.start()
@@ -151,6 +156,24 @@ class CameraConfigurationTests(unittest.TestCase):
 
 
 class PersistenceTests(SupervisorFixture):
+    def test_effective_self_config_resolves_secrets_without_changing_raw_options(self):
+        self.supervisor.effective_options = {**self.supervisor.options, "password": "resolved-offline-secret"}
+        self.assertEqual(self.client.effective_options()["password"], "resolved-offline-secret")
+        self.assertEqual(self.client.raw_options()["password"], "!secret ezviz_test")
+        self.assertTrue(all(headers["Authorization"] == "Bearer offline-supervisor-token" for headers in self.supervisor.seen_headers))
+
+    def test_missing_environment_token_is_diagnosed_before_any_http_request(self):
+        client = SupervisorClient("", self.client.base_url)
+        with self.assertRaisesRegex(SettingsError, "token is missing"):
+            client.effective_options()
+        self.assertEqual(self.supervisor.seen_headers, [])
+
+    def test_forbidden_self_config_is_diagnosed_without_exposing_response(self):
+        self.supervisor.deny = True
+        with self.assertRaisesRegex(SettingsError, "HTTP 403") as result:
+            self.client.effective_options()
+        self.assertNotIn("private-account-secret", str(result.exception))
+
     def test_add_camera_survives_new_client_and_preserves_secrets(self):
         original = copy.deepcopy(self.supervisor.options)
         service = CameraService(self.client, self.runtime)

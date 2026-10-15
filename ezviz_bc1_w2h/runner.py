@@ -338,6 +338,8 @@ def main() -> int:
         return 5
     log("Camera manager ready through Home Assistant ingress. Open Web UI to add a camera.")
     next_reload = 0.0
+    supervisor_error: str | None = None
+    last_supervisor_warning = float("-inf")
     try:
         while not STOPPING:
             now = time.monotonic()
@@ -346,8 +348,18 @@ def main() -> int:
                 next_reload = now + 15
                 try:
                     raw = client.effective_options()
-                except SettingsError:
-                    log("Supervisor settings unavailable; retaining the last loaded configuration.")
+                except SettingsError as error:
+                    # SettingsError contains controlled messages, never upstream
+                    # response bodies, account options or token values.
+                    reason = str(error)
+                    if reason != supervisor_error or now - last_supervisor_warning >= 300:
+                        log(f"Supervisor settings unavailable: {reason} Retaining the last loaded configuration.")
+                        last_supervisor_warning = now
+                    supervisor_error = reason
+                else:
+                    if supervisor_error is not None:
+                        log("Supervisor settings connection restored.")
+                    supervisor_error = None
             runtime.apply(raw, now)
             runtime.reload.wait(timeout=1)
     finally:

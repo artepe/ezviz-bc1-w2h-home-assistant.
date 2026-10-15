@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.3 - Restore Supervisor environment through s6 startup (2026-10-15)
+
+- Launch `run.sh` through `/command/with-contenv bash`, restoring the container environment before starting Python. The previous plain Bash launcher did not load the environment saved by s6, including `SUPERVISOR_TOKEN` and `APP_VERSION`.
+- Keep the documented self-only Supervisor endpoints and existing default role. Missing tokens and HTTP 403 now produce distinct controlled diagnostics without exposing response bodies or token values.
+- Log a repeated Supervisor settings error at most once per five minutes unless its reason changes. Report recovery, retain the last loaded configuration on failure, and keep retrying every 15 seconds.
+- Add an actual ARM64 container-startup check using the default `/init -> run.sh -> runner.py` path and synthetic environment values. Earlier module checks overrode the entrypoint and did not exercise this path. Compare the previous 0.2.2 image as a one-release regression baseline.
+- Load the built ARM64 image locally in CI, complete the module/media/default-startup checks, and only then push the validated image to GHCR.
+- Add HTTP contract tests for rendered self configuration, preservation of raw secret references, missing environment tokens and forbidden access. Real camera/cloud behavior still needs the next user-side video test.
+
 ## 0.2.2 - Restore video defaults and isolate audio experiments (2026-10-15)
 
 - Restore `#video=copy` and `media: video` in default snippets and examples after a report that the 0.2.1 audio configuration stopped video playback. The exact failure needs a fresh go2rtc log; AAC audio playback is not certified on BC1 hardware.

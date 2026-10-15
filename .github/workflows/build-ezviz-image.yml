@@ -9,6 +9,7 @@ on:
       - 'ezviz_bc1_w2h/**'
       - 'tests/**'
       - 'scripts/release_metadata.py'
+      - 'scripts/check_container_environment.py'
 
 permissions:
   contents: read
@@ -40,24 +41,40 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push Raspberry Pi 5 image
+      - name: Build Raspberry Pi 5 image for validation
         uses: docker/build-push-action@v6
         with:
           context: ./ezviz_bc1_w2h
           file: ./ezviz_bc1_w2h/Dockerfile
           platforms: linux/arm64
-          push: true
+          load: true
+          push: false
           tags: ${{ steps.release.outputs.image }}:${{ steps.release.outputs.version }}
           build-args: |
             BUILD_VERSION=${{ steps.release.outputs.version }}
             BUILD_ARCH=aarch64
-      - name: Check published image (Python CLI, FFmpeg and audio detection)
+      - name: Check built image (Python CLI, FFmpeg and audio detection)
         run: |
           docker run --rm --platform linux/arm64 --entrypoint /opt/ezviz-venv/bin/pyezvizapi "$IMAGE:$VERSION" --help >/dev/null
           docker run --rm --platform linux/arm64 --entrypoint /usr/bin/ffmpeg "$IMAGE:$VERSION" -version
           docker run --rm --platform linux/arm64 --entrypoint /usr/bin/ffprobe "$IMAGE:$VERSION" -version
           docker run --rm --platform linux/arm64 --entrypoint /opt/ezviz-venv/bin/python "$IMAGE:$VERSION" -c 'import sys; sys.path.insert(0, "/app"); import camera_config, supervisor_client, web, runner; from pathlib import Path; assert (Path("/app/static/index.html")).is_file()'
           docker run --rm --platform linux/arm64 --volume "$PWD/tests:/tests:ro" --env PYTHONPATH=/app --entrypoint /opt/ezviz-venv/bin/python "$IMAGE:$VERSION" -m unittest discover -s /tests -p test_audio_probe.py -v
+        env:
+          IMAGE: ${{ steps.release.outputs.image }}
+          VERSION: ${{ steps.release.outputs.version }}
+      - name: Report previous init environment (regression baseline)
+        if: steps.release.outputs.version == '0.2.3'
+        run: python3 scripts/check_container_environment.py "$IMAGE:0.2.2" --report-only
+        env:
+          IMAGE: ${{ steps.release.outputs.image }}
+      - name: Check default s6 startup preserves Supervisor token
+        run: python3 scripts/check_container_environment.py "$IMAGE:$VERSION"
+        env:
+          IMAGE: ${{ steps.release.outputs.image }}
+          VERSION: ${{ steps.release.outputs.version }}
+      - name: Publish validated Raspberry Pi 5 image
+        run: docker push "$IMAGE:$VERSION"
         env:
           IMAGE: ${{ steps.release.outputs.image }}
           VERSION: ${{ steps.release.outputs.version }}
