@@ -1,0 +1,22 @@
+configuration:
+  camera_serial:
+    name: Kameran 1 tunnus
+    description: Koko W2H-KAMERA-tunnus portissa 8558. Kamerat voi lisata myos Avaa kayttoliittyma -nakymassa.
+  camera_serial_2:
+    name: Kameran 2 tunnus
+    description: Toisen kameran koko tunnus portissa 8559. Kentta on aina nakyvissa ja kuuluu tallennettaviin asetuksiin.
+  cameras:
+    name: Kamerat
+    description: Lisaa kamera valitsemalla Avaa kayttoliittyma -> Add new camera. Hallinta tallentaa kamerat tahan listaan ja sailyttaa niiden portit.
+  username:
+    name: EZVIZ-kayttajatunnus
+    description: EZVIZ-tilin sahkopostiosoite pilvikirjautumiseen.
+  password:
+    name: EZVIZ-salasana
+    description: EZVIZ-tilin salasana. Kameran hallinta ei nayta salasanaa.
+  force_relogin:
+    name: Kirjaudu uudelleen
+    description: Tyhjenna tallennetut istunnot kaynnistyksessa. Poista valinta onnistuneen kirjautumisen jalkeen.
+  restart_delay:
+    name: Uudelleenyrityksen viive
+    description: Odotusaika sekunteina ennen epakunnossa olevan proxyn uudelleenyritysta.

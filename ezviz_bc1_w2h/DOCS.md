@@ -1,4 +1,10 @@
-# EZVIZ BC1 / W2H Cloud Proxy - TEST v0.1.3
+# EZVIZ BC1 / W2H Cloud Proxy - camera manager v0.2.0
+
+**Uusi kameran hallinta:** paivita olemassa oleva lisaosa versioon **0.2.0** ja valitse **Open Web UI / Avaa kayttoliittyma -> Add new camera**. Asetusten tallennus varmennetaan Home Assistantista, ja aiemmat kameratunnukset seka portit sailyvat tuettuina. Lisaosa loytyy myos sivupalkista nimella **EZVIZ Cameras**, kun Show in sidebar on valittu.
+
+**[Nykyinen paivitys- ja kameran lisaysohje / current upgrade guide](../docs/UPGRADE_0_2.md).** Tama hallintanakyma kuuluu lisaosaan; Home Assistantin sisaisen EZVIZ-integraation laite- ja anturisivu on erillinen.
+
+The following sections retain the original installation and hardware-test history. Use the linked 0.2.0 guide for current update and camera-management instructions.
 
 **v0.1.3 adds an optional second camera.** The single-camera hardware test below was performed with v0.1.2. The new two-camera process supervision and token isolation have offline test coverage; second-camera live video and simultaneous viewing still require a hardware test.
 

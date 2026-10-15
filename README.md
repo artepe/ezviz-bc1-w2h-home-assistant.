@@ -11,7 +11,17 @@
 >
 > **Requires EZVIZ cloud / internet**. This is not native local RTSP or an offline camera connection.
 
-## Raspberry Pi 5 add-on - experimental v0.1.3
+## Raspberry Pi 5 app - camera manager v0.2.0
+
+**New: Open Web UI -> Add new camera.** Add, edit and remove cameras without manually adding YAML keys. Each save goes through Home Assistant Supervisor and is read back before success is shown. Cameras retain their loopback ports, including the original 8558 / 8559 URLs, and the manager provides an on-demand video transport test plus copyable go2rtc and Lovelace configuration.
+
+**Update the existing app; do not uninstall it.** Both original camera fields now have visible defaults, so `camera_serial_2` belongs to the app's saved configuration. The ARM64 build reads its image tag from the app manifest, keeping the downloadable image and update version together. A completed image build is required before the update can be installed.
+
+**[Update and Add new camera guide](docs/UPGRADE_0_2.md)** · The manager is available through **Open Web UI** and the optional **EZVIZ Cameras** sidebar. The built-in EZVIZ device/entity screen is a separate Home Assistant Core integration.
+
+The 0.2.0 changes have offline configuration, persistence, ingress and process lifecycle tests. Live camera playback, multi-camera cloud limits and installation on the user's Pi must be checked on hardware. The end-to-end hardware report below describes the original v0.1.2 setup.
+
+### Earlier two-camera option (v0.1.3, still supported)
 
 **New: optional second camera.** Version 0.1.3 keeps the existing `camera_serial` stream on `127.0.0.1:8558` and adds `camera_serial_2` on `127.0.0.1:8559`. The two proxies have separate process supervision and private token files. The existing one-camera options still work. Offline lifecycle tests pass; second-camera live video and simultaneous cloud streaming still require a hardware test. The end-to-end live-video verification below applies to v0.1.2.
 
@@ -41,7 +51,7 @@ Use your existing Lovelace WebRTC card with `url: ezviz_bc1`. **Pi-hosted Lovela
 
 ### Add a second BC1 with v0.1.3
 
-1. Update the existing **EZVIZ BC1 / W2H Cloud Proxy (TEST)** app to **0.1.3** after the [image build](.github/workflows/build-ezviz-image.yml) succeeds. Keep the first camera in `camera_serial`.
+1. Update the existing **EZVIZ BC1 / W2H Cloud Proxy (TEST)** app to **0.2.0** after the [image build](.github/workflows/build-ezviz-image.yml) succeeds. Keep the first camera in `camera_serial`, or use **Open Web UI -> Add new camera**.
 2. In app **Configuration -> YAML**, add `camera_serial_2: YOUR_W2H_SERIAL-YOUR_SECOND_BC1_SERIAL`. Both cameras must be accessible through the same EZVIZ account. Leave the field absent or empty for one camera.
 3. Save and restart the app. Its log should report camera 1 on port 8558 and camera 2 on port 8559. Process startup alone does not verify live video.
 4. Add the second go2rtc source and test it in the go2rtc player before adding the dashboard card:
@@ -112,7 +122,7 @@ WebRTC Camera Lovelace card
 
 ### Quick start: Raspberry Pi 5 / Home Assistant OS (verified end-to-end, including Lovelace)
 
-1. In Home Assistant **Apps / Add-on Store -> Repositories** add this repository. Install **EZVIZ BC1 / W2H Cloud Proxy (TEST)**, version **0.1.3** once its image build succeeds. The prebuilt Linux/ARM64 image is provided by GitHub Actions; no Alpine `apk` image build on the Pi is necessary.
+1. In Home Assistant **Apps / Add-on Store -> Repositories** add this repository. Install **EZVIZ BC1 / W2H Cloud Proxy (TEST)**, version **0.2.0** once its image build succeeds. The prebuilt Linux/ARM64 image is provided by GitHub Actions; no Alpine `apk` image build on the Pi is necessary.
 2. In the add-on **Configuration**, enter `camera_serial` (the BC1 subcamera serial including hub prefix, not just the W2H hub), EZVIZ `username` and `password`; leave `force_relogin: false`, `restart_delay: 30`. Never share credentials or account tokens.
    For an optional second camera, add its full serial as `camera_serial_2` in the configuration YAML.
 3. Start the add-on. Its log should show **`EZVIZ token saved in private add-on storage`** and **`Proxy process started`**.

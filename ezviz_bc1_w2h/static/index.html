@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="csrf-token" content="__CSRF__">
+  <base href="__BASE__">
+  <title>EZVIZ Cameras</title>
+  <link rel="stylesheet" href="app.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <main class="workspace">
+    <header class="topbar">
+      <div class="brand"><span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h11a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Zm13 4 5-3v10l-5-3M6 10h5"/></svg></span><span>EZVIZ <strong>Cameras</strong></span></div>
+      <span class="version" id="version">Loading</span>
+    </header>
+    <section class="heading">
+      <div><p class="eyebrow">YOUR HOME, CONNECTED</p><h1>Camera manager</h1><p class="subtitle">Add a camera. Check its connection. Bring it to your dashboard.</p></div>
+      <button class="button primary" id="add-camera" type="button"><span aria-hidden="true">+</span> Add new camera</button>
+    </section>
+    <div id="notice" class="notice" role="status" aria-live="polite">Connecting to the camera manager...</div>
+    <section class="summary" aria-label="Camera overview"><div><span class="stat" id="camera-count">0</span><span>Cameras added</span></div><div><span class="stat" id="ready-count">0</span><span>Proxies ready</span></div><p>Video is requested when you open a camera or run a test.</p></section>
+    <section class="camera-grid" id="cameras" aria-label="Your cameras"></section>
+    <section class="empty" id="empty" hidden><div class="empty-mark" aria-hidden="true">+</div><h2>Your next camera starts here</h2><p>Add your BC1 camera with its serial number.<br>Existing cameras are brought in automatically after an update.</p><button class="button primary" id="add-first-camera" type="button">Add new camera</button></section>
+    <footer>BC1 / W2H <span aria-hidden="true">&middot;</span> Connected through your EZVIZ account</footer>
+  </main>
+
+  <dialog id="camera-dialog" aria-labelledby="dialog-title">
+    <form id="camera-form">
+      <div class="dialog-head"><div><p class="eyebrow">CAMERA SETUP</p><h2 id="dialog-title">Add new camera</h2></div><button class="icon-button" id="close-dialog" type="button" aria-label="Close">&times;</button></div>
+      <p class="form-intro">Use a camera that is already paired with your W2H base station and visible in your EZVIZ account.</p>
+      <label for="camera-name">Camera name</label><input id="camera-name" name="name" placeholder="Driveway" maxlength="80" required autocomplete="off">
+      <label for="hub-serial">W2H base station serial <span class="optional">optional for a full camera ID</span></label><input id="hub-serial" name="hub_serial" placeholder="HUB_SERIAL" maxlength="128" autocomplete="off" spellcheck="false">
+      <label for="camera-serial">Camera serial</label><input id="camera-serial" name="serial" placeholder="CAMERA_SERIAL or HUB_SERIAL-CAMERA_SERIAL" maxlength="128" required autocomplete="off" spellcheck="false">
+      <p class="field-hint">The full camera ID can be copied from your EZVIZ device details. We combine the base station and camera serials for you.</p>
+      <div id="form-error" class="form-error" role="alert" hidden></div>
+      <div class="dialog-actions"><button class="button secondary" id="cancel-dialog" type="button">Cancel</button><button class="button primary" id="save-camera" type="submit">Save camera</button></div>
+      <p class="save-note">Saved in Home Assistant and checked before confirmation.</p>
+    </form>
+  </dialog>
+
+  <dialog id="remove-dialog" aria-labelledby="remove-title"><form id="remove-form"><div class="dialog-head"><h2 id="remove-title">Remove camera?</h2><button class="icon-button" id="close-remove" type="button" aria-label="Close">&times;</button></div><p id="remove-description"></p><p>This removes the camera from this manager. Your device remains in your EZVIZ account.</p><div id="remove-error" class="form-error" role="alert" hidden></div><div class="dialog-actions"><button class="button secondary" id="cancel-remove" type="button">Cancel</button><button class="button danger" id="confirm-remove" type="submit">Remove camera</button></div></form></dialog>
+</body>
+</html>

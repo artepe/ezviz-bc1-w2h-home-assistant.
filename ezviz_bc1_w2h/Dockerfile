@@ -3,12 +3,14 @@
 # Workaround for Alpine APKINDEX temporary mirror/network errors seen on Pi 5.
 FROM ghcr.io/home-assistant/aarch64-base:3.22
 
-ARG BUILD_VERSION=0.1.3
+ARG BUILD_VERSION=development
 ARG BUILD_ARCH=aarch64
+ENV APP_VERSION=${BUILD_VERSION}
 
 LABEL io.hass.version="${BUILD_VERSION}" \
       io.hass.type="app" \
       io.hass.arch="${BUILD_ARCH}" \
+      org.opencontainers.image.version="${BUILD_VERSION}" \
       org.opencontainers.image.source="https://github.com/artepe/ezviz-bc1-w2h-home-assistant."
 
 # Some network/DNS configurations intermittently fail to fetch Alpine APKINDEX
@@ -42,7 +44,8 @@ RUN set -eu; \
     apk del git
 
 COPY run.sh /run.sh
-COPY runner.py /app/runner.py
-RUN chmod 755 /run.sh && chmod 644 /app/runner.py
+COPY *.py /app/
+COPY static /app/static
+RUN chmod 755 /run.sh && chmod 644 /app/*.py
 
 CMD ["/run.sh"]

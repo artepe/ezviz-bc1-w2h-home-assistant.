@@ -1,0 +1,22 @@
+configuration:
+  camera_serial:
+    name: Camera 1 serial
+    description: Full W2H-CAMERA identifier on port 8558. Existing settings are supported. You can also manage cameras in Open Web UI.
+  camera_serial_2:
+    name: Camera 2 serial
+    description: Full identifier for the second camera on port 8559. This field is now always visible and saved by the app schema.
+  cameras:
+    name: Cameras
+    description: Add cameras with Open Web UI -> Add new camera. The manager saves this list and keeps every camera port stable.
+  username:
+    name: EZVIZ username
+    description: EZVIZ account email used for cloud login.
+  password:
+    name: EZVIZ password
+    description: EZVIZ account password. The camera manager never displays this value.
+  force_relogin:
+    name: Sign in again
+    description: Clear saved camera sessions on startup. Switch off after successful sign-in.
+  restart_delay:
+    name: Retry delay
+    description: Seconds before retrying a failed camera proxy.

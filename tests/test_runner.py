@@ -10,6 +10,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "ezviz_bc1_w2h"))
 SPEC = importlib.util.spec_from_file_location("ezviz_runner", ROOT / "ezviz_bc1_w2h/runner.py")
 runner = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = runner
@@ -53,7 +54,6 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_bad_serial_and_retry_delay_are_rejected(self):
         for overrides in (
-            {"camera_serial": ""},
             {"camera_serial_2": "invalid/serial"},
             {"restart_delay": 9},
             {"restart_delay": 301},

@@ -8,6 +8,7 @@ on:
       - '.github/workflows/build-ezviz-image.yml'
       - 'ezviz_bc1_w2h/**'
       - 'tests/**'
+      - 'scripts/release_metadata.py'
 
 permissions:
   contents: read
@@ -24,7 +25,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Check offline camera supervision
+      - name: Read app release metadata
+        id: release
+        run: python3 scripts/release_metadata.py >> "$GITHUB_OUTPUT"
+      - name: Check camera configuration, persistence, ingress and supervision
         run: python3 -m unittest discover -s tests -v
       - name: Set up QEMU for ARM64
         uses: docker/setup-qemu-action@v3
@@ -43,11 +47,15 @@ jobs:
           file: ./ezviz_bc1_w2h/Dockerfile
           platforms: linux/arm64
           push: true
-          tags: ghcr.io/artepe/ezviz-bc1-w2h:0.1.3
+          tags: ${{ steps.release.outputs.image }}:${{ steps.release.outputs.version }}
           build-args: |
-            BUILD_VERSION=0.1.3
+            BUILD_VERSION=${{ steps.release.outputs.version }}
             BUILD_ARCH=aarch64
       - name: Check published image (Python CLI and FFmpeg)
         run: |
-          docker run --rm --platform linux/arm64 --entrypoint /opt/ezviz-venv/bin/pyezvizapi ghcr.io/artepe/ezviz-bc1-w2h:0.1.3 --help >/dev/null
-          docker run --rm --platform linux/arm64 --entrypoint /usr/bin/ffmpeg ghcr.io/artepe/ezviz-bc1-w2h:0.1.3 -version | head -n 1
+          docker run --rm --platform linux/arm64 --entrypoint /opt/ezviz-venv/bin/pyezvizapi "$IMAGE:$VERSION" --help >/dev/null
+          docker run --rm --platform linux/arm64 --entrypoint /usr/bin/ffmpeg "$IMAGE:$VERSION" -version
+          docker run --rm --platform linux/arm64 --entrypoint /opt/ezviz-venv/bin/python "$IMAGE:$VERSION" -c 'import sys; sys.path.insert(0, "/app"); import camera_config, supervisor_client, web, runner; from pathlib import Path; assert (Path("/app/static/index.html")).is_file()'
+        env:
+          IMAGE: ${{ steps.release.outputs.image }}
+          VERSION: ${{ steps.release.outputs.version }}

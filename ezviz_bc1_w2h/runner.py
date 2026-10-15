@@ -10,11 +10,13 @@ from dataclasses import dataclass
 import json
 import os
 from pathlib import Path
-import re
-import shutil
 import signal
 import subprocess
+import threading
 import time
+
+from camera_config import Camera, parse_cameras
+from supervisor_client import SettingsError, SupervisorClient
 
 OPTIONS = Path("/data/options.json")
 TOKEN = Path("/data/ezviz_token.json")
@@ -33,6 +35,7 @@ class ProxyWorker:
     token: Path
     process: subprocess.Popen[bytes] | None = None
     retry_at: float = 0.0
+    name: str = ""
 
 
 WORKERS: list[ProxyWorker] = []
@@ -63,27 +66,18 @@ def stop(_signum: int, _frame: object) -> None:
 def parse_options(
     raw: dict[str, object],
 ) -> tuple[tuple[str, ...], str, str, bool, int]:
-    serials: list[str] = []
-    for key in ("camera_serial", "camera_serial_2"):
-        serial = str(raw.get(key) or "").strip()
-        if key == "camera_serial_2" and not serial:
-            continue
-        if not re.fullmatch(r"[A-Za-z0-9-]{5,128}", serial):
-            raise ValueError(
-                f"Set {key} to the full BC1 subcamera serial "
-                "(often HUB_SERIAL-CAMERA_SERIAL)."
-            )
-        if serial in serials:
-            raise ValueError("The two camera serials must be different.")
-        serials.append(serial)
+    cameras = parse_cameras(raw)
 
     username = str(raw.get("username") or "").strip()
     password = str(raw.get("password") or "")
     force_relogin = raw.get("force_relogin", False) is True
-    delay = int(raw.get("restart_delay", 30))
+    delay_value = raw.get("restart_delay", 30)
+    if isinstance(delay_value, bool) or not isinstance(delay_value, int):
+        raise ValueError("restart_delay must be an integer")
+    delay = delay_value
     if not 10 <= delay <= 300:
         raise ValueError("restart_delay must be between 10 and 300 seconds")
-    return tuple(serials), username, password, force_relogin, delay
+    return tuple(camera.serial for camera in cameras), username, password, force_relogin, delay
 
 
 def login(username: str, password: str) -> bool:
@@ -133,17 +127,25 @@ def login(username: str, password: str) -> bool:
     return True
 
 
-def prepare_workers(serials: tuple[str, ...]) -> list[ProxyWorker]:
-    """Clone the initial session before workers can write their own tokens."""
+def prepare_workers(serials: tuple[str, ...], cameras: tuple[Camera, ...] | None = None) -> list[ProxyWorker]:
+    """Retain each camera's private session and stable loopback port."""
     TOKEN.chmod(0o600)
     workers: list[ProxyWorker] = []
-    for offset, serial in enumerate(serials):
-        token = TOKEN if offset == 0 else TOKEN.with_name("ezviz_token_camera_2.json")
-        if offset:
-            shutil.copyfile(TOKEN, token)
+    configured = cameras or tuple(Camera(f"Camera {offset + 1}", serial, LISTEN_PORT + offset) for offset, serial in enumerate(serials))
+    for camera in configured:
+        token = TOKEN if camera.index == 1 else TOKEN.with_name(f"ezviz_token_camera_{camera.index}.json")
+        if not token.is_file() or token.stat().st_size == 0:
+            # Reject a partial upstream token write rather than cloning it.
+            contents = TOKEN.read_bytes()
+            json.loads(contents)
+            temporary = token.with_suffix(".tmp")
+            temporary.write_bytes(contents)
+            temporary.chmod(0o600)
+            temporary.replace(token)
+        else:
             token.chmod(0o600)
         workers.append(
-            ProxyWorker(index=offset + 1, serial=serial, port=LISTEN_PORT + offset, token=token)
+            ProxyWorker(index=camera.index, serial=camera.serial, port=camera.port, token=token, name=camera.name)
         )
     return workers
 
@@ -215,46 +217,143 @@ def shutdown_workers(workers: list[ProxyWorker]) -> None:
             worker.process = None
 
 
+class Runtime:
+    """Reconcile saved cameras without restarting an unaffected camera."""
+
+    def __init__(self):
+        self.lock = threading.RLock()
+        self.reload = threading.Event()
+        self.cameras: tuple[Camera, ...] = ()
+        self.message = "Loading camera settings."
+        self.last_force = False
+        self.login_retry_at = 0.0
+
+    def apply(self, raw: dict[str, object], now: float) -> None:
+        global WORKERS
+        try:
+            serials, username, password, force_relogin, retry = parse_options(raw)
+            cameras = parse_cameras(raw)
+        except (ValueError, TypeError):
+            with self.lock:
+                self.message = "Invalid camera settings. Check names, serials, duplicate ports and restart_delay."
+            return
+
+        with self.lock:
+            self.cameras = cameras
+            desired = {camera.port: camera for camera in cameras}
+            removed = [worker for worker in WORKERS if worker.port not in desired or desired[worker.port].serial != worker.serial]
+            force_requested = force_relogin and not self.last_force
+            if force_requested:
+                removed = list(WORKERS)
+            self.last_force = force_relogin
+        # Don't hold the UI lock while waiting for subprocesses or cloud login.
+        shutdown_workers(removed)
+        with self.lock:
+            WORKERS = [worker for worker in WORKERS if worker not in removed]
+            poll_workers(WORKERS, retry, now)
+        if force_requested:
+            self.clear_tokens()
+
+        if not cameras:
+            with self.lock:
+                self.message = "Ready. Select Add new camera to get started."
+            return
+
+        if not TOKEN.is_file() or TOKEN.stat().st_size == 0:
+            if now < self.login_retry_at:
+                return
+            self.login_retry_at = now + retry
+            with self.lock:
+                self.message = "Signing in to EZVIZ." if username and password else "Enter your EZVIZ username and password in the app Configuration tab."
+            if not login(username, password):
+                with self.lock:
+                    self.message = "EZVIZ sign-in is unavailable. Check the account settings, internet connection and app log."
+                return
+        if STOPPING:
+            return
+
+        try:
+            with self.lock:
+                existing = {worker.port: worker for worker in WORKERS}
+            new_cameras = tuple(camera for camera in cameras if camera.port not in existing)
+            added = prepare_workers(tuple(camera.serial for camera in new_cameras), new_cameras) if new_cameras else []
+        except (OSError, ValueError):
+            with self.lock:
+                self.message = "Preparing the camera sessions. Retrying shortly."
+            return
+        with self.lock:
+            WORKERS.extend(added)
+            for worker in WORKERS:
+                worker.name = desired[worker.port].name
+            poll_workers(WORKERS, retry, now)
+            self.message = "Settings loaded. Proxy ready means the local service is listening; test each camera for video."
+
+    @staticmethod
+    def clear_tokens() -> None:
+        for token in (TOKEN, *TOKEN.parent.glob("ezviz_token_camera_*.json")):
+            token.unlink(missing_ok=True)
+        log("Saved camera sessions cleared for a new login.")
+
+    def snapshot(self) -> dict[str, object]:
+        import socket
+
+        with self.lock:
+            cameras = self.cameras
+            message = self.message
+            processes = {worker.port: worker.process is not None and worker.process.poll() is None for worker in WORKERS}
+        states = []
+        for camera in cameras:
+            running = processes.get(camera.port, False)
+            listening = False
+            if running:
+                try:
+                    with socket.create_connection((LISTEN_HOST, camera.port), timeout=0.15):
+                        listening = True
+                except OSError:
+                    pass
+            states.append({**camera.as_dict(), "stream": camera.stream,
+                           "status": "ready" if listening else "starting" if running else "waiting",
+                           **camera.snippets()})
+        return {"message": message, "cameras": states}
+
+
 def main() -> int:
-    global WORKERS
+    from web import start_server
+
     os.umask(0o077)
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
-
+    client = SupervisorClient()
+    runtime = Runtime()
     try:
         raw = json.loads(OPTIONS.read_text(encoding="utf-8"))
         if not isinstance(raw, dict):
-            raise ValueError("Options must be a JSON object.")
-        serials, username, password, force_relogin, retry = parse_options(raw)
-    except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
-        log(f"Configuration error: {exc}")
-        return 2
-
-    if force_relogin and TOKEN.exists():
-        TOKEN.unlink()
-        log("Previously saved token cleared because force_relogin=true.")
-
-    if not TOKEN.is_file() or TOKEN.stat().st_size == 0:
-        if not login(username, password):
-            return 0 if STOPPING else 3
-    if STOPPING:
-        return 0
-
+            raw = {}
+    except (OSError, ValueError):
+        raw = {}
     try:
-        WORKERS = prepare_workers(serials)
+        server = start_server(client, runtime)
     except OSError:
-        log("Could not prepare private camera token files.")
-        return 4
-
-    log(f"Starting {len(WORKERS)} cloud proxy process(es), bound to loopback only.")
+        log("Cannot open the camera manager ingress port. Check for a port conflict on 8788.")
+        return 5
+    log("Camera manager ready through Home Assistant ingress. Open Web UI to add a camera.")
+    next_reload = 0.0
     try:
         while not STOPPING:
-            poll_workers(WORKERS, retry, time.monotonic())
-            if not STOPPING:
-                time.sleep(1)
+            now = time.monotonic()
+            if runtime.reload.is_set() or now >= next_reload:
+                runtime.reload.clear()
+                next_reload = now + 15
+                try:
+                    raw = client.effective_options()
+                except SettingsError:
+                    log("Supervisor settings unavailable; retaining the last loaded configuration.")
+            runtime.apply(raw, now)
+            runtime.reload.wait(timeout=1)
     finally:
+        server.shutdown()
+        server.server_close()
         shutdown_workers(WORKERS)
-
     log("Add-on stopped.")
     return 0
 

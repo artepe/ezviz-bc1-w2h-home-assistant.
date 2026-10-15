@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0 - Camera manager and update packaging (2026-10-15)
+
+- Added an ingress-only **EZVIZ Cameras** panel with **Add new camera**, editing, removal, an on-demand video transport test, and copyable go2rtc / Lovelace settings.
+- Save options through Supervisor and read them back before confirming success. Restore previous settings if an older schema silently strips camera entries. Preserve account credentials and `!secret` references.
+- Both legacy scalar camera fields now have explicit defaults and visible configuration translations. Existing serials and ports 8558 / 8559 are retained; the camera manager migrates them to a persistent list on its first save.
+- Support up to 16 cameras with stable, non-overlapping ports. Reconcile changes without restarting unaffected camera proxies; retain each camera's refreshed private session.
+- Keep the same app slug and GHCR package so the existing installation can be updated. Read image version/tag directly from the app manifest in the ARM64 build workflow, and smoke-test the packaged manager modules and static assets.
+- Added offline migration, save/readback, HTTP API, ingress access, camera isolation and rollback checks. Hardware validation of 0.2.0 and live multi-camera operation is pending.
+
 ## 0.1.3 - Optional second BC1 camera (2026-10-12)
 
 - Added optional `camera_serial_2`; existing one-camera options remain valid.
