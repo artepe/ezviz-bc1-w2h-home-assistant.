@@ -3,7 +3,7 @@ const byId = id => document.getElementById(id);
 const csrf = document.querySelector('meta[name="csrf-token"]').content;
 const dialog = byId("camera-dialog");
 let state = {cameras: []}, editing = null, removing = null, noticeUntil = 0;
-const expanded = new Set(), results = new Map(), testing = new Set();
+const expanded = new Set(), expandedAudio = new Set(), results = new Map(), testing = new Set();
 
 async function request(path, method = "GET", payload = null) {
   const response = await fetch(new URL(path, document.baseURI), {
@@ -93,9 +93,17 @@ function render() {
     details.addEventListener("toggle", () => details.open ? expanded.add(camera.port) : expanded.delete(camera.port));
     details.append(element("summary", "", "Connection & dashboard setup"));
     details.append(element("p", "", "Merge the stream entry into your existing go2rtc streams section, then add the Lovelace card to your dashboard."));
-    details.append(element("p", "", "Audio: replace older video-only settings in both go2rtc and Lovelace, then restart go2rtc. Open the card and unmute its speaker. Test audio checks whether the proxy supplies an audio track; it does not measure microphone volume."));
+    details.append(element("p", "", "These default settings request video only. If the 0.2.1 audio settings stopped playback, restore these settings in both go2rtc and Lovelace, then restart go2rtc."));
     snippet("go2rtc", camera.go2rtc, details, 4);
     snippet("Lovelace card", camera.lovelace, details, 8);
+    const audioDetails = element("details", "connection");
+    audioDetails.open = expandedAudio.has(camera.port);
+    audioDetails.addEventListener("toggle", () => audioDetails.open ? expandedAudio.add(camera.port) : expandedAudio.delete(camera.port));
+    audioDetails.append(element("summary", "", "Experimental audio test"));
+    audioDetails.append(element("p", "", "Close live views and run Test audio first. Try the following only if an audio track is detected. Merge this separate test stream into go2rtc without replacing the working video stream, then restart go2rtc. Use a temporary card and unmute its speaker. Audio playback is not yet verified on BC1 hardware."));
+    snippet("go2rtc audio test", camera.go2rtc_audio, audioDetails, 4);
+    snippet("Temporary audio card", camera.lovelace_audio, audioDetails, 8);
+    details.append(audioDetails);
     card.append(details); cards.push(card);
   }
   byId("cameras").replaceChildren(...cards);
@@ -153,7 +161,7 @@ async function removeCamera(event) {
   try {
     const result = await request(`api/cameras/${removing.port}`, "DELETE", {});
     byId("remove-dialog").close(); notice(result.message, "success", 12000);
-    results.delete(removing.port); expanded.delete(removing.port);
+    results.delete(removing.port); expanded.delete(removing.port); expandedAudio.delete(removing.port);
     await refresh(); window.setTimeout(refresh, 1200);
   } catch (error) { byId("remove-error").textContent = error.message; byId("remove-error").hidden = false; }
   finally { confirm.disabled = false; }

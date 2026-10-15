@@ -11,9 +11,9 @@
 >
 > **Requires EZVIZ cloud / internet**. This is not native local RTSP or an offline camera connection.
 
-## Raspberry Pi 5 app - camera manager v0.2.1
+## Raspberry Pi 5 app - camera manager v0.2.2
 
-**Audio configuration fix (0.2.1):** the manager now generates `#video=copy#audio=aac` sources and `media: video,audio` cards. Earlier generated settings disabled audio. Replace both existing configurations and restart go2rtc; updating this app alone does not edit them. **Test audio** inspects the proxy's source track and distinguishes missing audio from a connection failure. [Audio setup and diagnostics](docs/AUDIO.md). Actual BC1 microphone audio is still pending hardware verification.
+**Video recovery (0.2.2):** restore the original video-only defaults after a report that the 0.2.1 audio settings stopped playback. The exact stream failure still needs a fresh go2rtc log. **Test audio** remains available, and experimental audio snippets now use a separate `_audio_test` stream and temporary card. Keep the working video stream while investigating audio. [Recovery and audio diagnostics](docs/AUDIO.md). Updating this app does not edit existing go2rtc or Lovelace configuration.
 
 **New: Open Web UI -> Add new camera.** Add, edit and remove cameras without manually adding YAML keys. Each save goes through Home Assistant Supervisor and is read back before success is shown. Cameras retain their loopback ports, including the original 8558 / 8559 URLs, and the manager provides an on-demand video transport test plus copyable go2rtc and Lovelace configuration.
 
@@ -41,12 +41,12 @@ Add this repository in Home Assistant → Apps / Add-on Store → Repositories:
 https://github.com/artepe/ezviz-bc1-w2h-home-assistant.
 ```
 
-**Current go2rtc source** (same BC1 serial as add-on configuration; audio requires a source track):
+**Current video-only go2rtc source** (same BC1 serial as add-on configuration; use the separate experiment in the audio guide for sound):
 
 ```yaml
 streams:
   ezviz_bc1:
-    - "ffmpeg:http://127.0.0.1:8558/YOUR_HUB_SERIAL-YOUR_BC1_SERIAL.ts#video=copy#audio=aac"
+    - "ffmpeg:http://127.0.0.1:8558/YOUR_HUB_SERIAL-YOUR_BC1_SERIAL.ts#video=copy"
 ```
 
 Use your existing Lovelace WebRTC card with `url: ezviz_bc1`. **Pi-hosted Lovelace playback was confirmed working on 2026-10-11**; the MacBook is no longer required.
@@ -61,9 +61,9 @@ Use your existing Lovelace WebRTC card with `url: ezviz_bc1`. **Pi-hosted Lovela
 ```yaml
 streams:
   ezviz_bc1:
-    - "ffmpeg:http://127.0.0.1:8558/YOUR_W2H_SERIAL-YOUR_BC1_SERIAL.ts#video=copy#audio=aac"
+    - "ffmpeg:http://127.0.0.1:8558/YOUR_W2H_SERIAL-YOUR_BC1_SERIAL.ts#video=copy"
   ezviz_bc1_2:
-    - "ffmpeg:http://127.0.0.1:8559/YOUR_W2H_SERIAL-YOUR_SECOND_BC1_SERIAL.ts#video=copy#audio=aac"
+    - "ffmpeg:http://127.0.0.1:8559/YOUR_W2H_SERIAL-YOUR_SECOND_BC1_SERIAL.ts#video=copy"
 ```
 
 Merge these entries into the existing `streams:` mapping. Use `url: ezviz_bc1_2` in the second WebRTC card. Complete examples: [two go2rtc streams](examples/go2rtc-two-cameras.yaml) and [two Lovelace cards](examples/lovelace-two-cameras.yaml).

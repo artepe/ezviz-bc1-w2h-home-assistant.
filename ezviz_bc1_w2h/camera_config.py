@@ -30,13 +30,21 @@ class Camera:
         return {"name": self.name, "serial": self.serial, "port": self.port}
 
     def snippets(self) -> dict[str, str]:
-        source = f"ffmpeg:http://127.0.0.1:{self.port}/{self.serial}.ts#video=copy#audio=aac"
+        source = f"ffmpeg:http://127.0.0.1:{self.port}/{self.serial}.ts#video=copy"
+        audio_stream = f"{self.stream}_audio_test"
+        title = json.dumps(self.name, ensure_ascii=True)
         return {
             "go2rtc": f"streams:\n  {self.stream}:\n    - {source}\n",
             "lovelace": (
                 "type: custom:webrtc-camera\n"
-                f"url: {self.stream}\nmode: mse\nmedia: video,audio\nui: true\nmuted: true\n"
-                f"title: {json.dumps(self.name, ensure_ascii=True)}\n"
+                f"url: {self.stream}\nmode: mse\nmedia: video\nui: true\nmuted: true\n"
+                f"title: {title}\n"
+            ),
+            "go2rtc_audio": f"streams:\n  {audio_stream}:\n    - {source}#audio=aac\n",
+            "lovelace_audio": (
+                "type: custom:webrtc-camera\n"
+                f"url: {audio_stream}\nmode: mse\nmedia: video,audio\nui: true\nmuted: true\n"
+                f"title: {title}\n"
             ),
         }
 

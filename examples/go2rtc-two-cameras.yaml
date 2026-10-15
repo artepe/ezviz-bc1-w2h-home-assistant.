@@ -1,9 +1,9 @@
 # Configure both cameras in EZVIZ BC1/W2H -> Open Web UI.
 # These examples assume camera ports 8558 and 8559.
 # Keep other streams when merging this mapping into an existing config.
-# AAC audio requires an audio track in the proxy output; see docs/AUDIO.md.
+# Default video-only sources; optional audio uses separate aliases in docs/AUDIO.md.
 streams:
   ezviz_bc1:
-    - "ffmpeg:http://127.0.0.1:8558/YOUR_W2H_SERIAL-YOUR_FIRST_BC1_SERIAL.ts#video=copy#audio=aac"
+    - "ffmpeg:http://127.0.0.1:8558/YOUR_W2H_SERIAL-YOUR_FIRST_BC1_SERIAL.ts#video=copy"
   ezviz_bc1_2:
-    - "ffmpeg:http://127.0.0.1:8559/YOUR_W2H_SERIAL-YOUR_SECOND_BC1_SERIAL.ts#video=copy#audio=aac"
+    - "ffmpeg:http://127.0.0.1:8559/YOUR_W2H_SERIAL-YOUR_SECOND_BC1_SERIAL.ts#video=copy"

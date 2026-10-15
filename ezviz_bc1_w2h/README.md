@@ -1,10 +1,10 @@
 # EZVIZ BC1 / W2H Cloud Proxy (TEST)
 
-**Experimental Raspberry Pi 5 / Home Assistant OS app - version 0.2.1.**
+**Experimental Raspberry Pi 5 / Home Assistant OS app - version 0.2.2.**
 
 Use **Open Web UI -> Add new camera** to save cameras through Home Assistant Supervisor with readback verification. Existing camera serials and ports 8558 / 8559 remain supported. Each camera has a private token file and supervised proxy. [Current update guide](../docs/UPGRADE_0_2.md).
 
-**Audio fix in 0.2.1:** earlier generated settings disabled audio. New snippets use `#video=copy#audio=aac` and `media: video,audio`. Replace the existing go2rtc and card settings manually, restart go2rtc, and unmute the player. **Test audio** checks whether the source proxy supplies an audio track. Actual BC1 microphone sound still needs hardware verification. [Audio setup and diagnostics](../docs/AUDIO.md).
+**Video recovery in 0.2.2:** default snippets again use `#video=copy` and `media: video`. Audio-enabled defaults introduced in 0.2.1 were followed by a playback-failure report. **Test audio** checks the source track, and optional audio snippets use a separate `_audio_test` alias and temporary card. [Recovery and audio diagnostics](../docs/AUDIO.md). Existing go2rtc and dashboard settings must be restored manually; the app does not edit them.
 
 Run [pyEzvizApi](https://github.com/RenierM26/pyEzvizApi) cloud live streaming on Raspberry Pi 5, replacing the currently verified MacBook relay. Requires EZVIZ account, W2H hub, BC1 subcamera, internet and go2rtc.
 
@@ -17,7 +17,7 @@ This add-on serves HTTP MPEG-TS at **127.0.0.1:8558** on the Home Assistant OS h
 ```yaml
 streams:
   ezviz_bc1:
-    - "ffmpeg:http://127.0.0.1:8558/YOUR_HUB_SERIAL-YOUR_BC1_SERIAL.ts#video=copy#audio=aac"
+    - "ffmpeg:http://127.0.0.1:8558/YOUR_HUB_SERIAL-YOUR_BC1_SERIAL.ts#video=copy"
 ```
 
 The HACS WebRTC Camera card uses `url: ezviz_bc1`; use [the complete YAML](../examples/lovelace-webrtc.yaml). No external internet port forwarding. No native RTSP from the W2H hub.
@@ -30,4 +30,4 @@ The GitHub Actions job **successfully built and published** `ghcr.io/artepe/ezvi
 
 **Important:** GitHub Container Registry packages may start **Private**, even when this code repository is Public. To allow Home Assistant OS to pull the image, open **GitHub → your profile → Packages → ezviz-bc1-w2h → Package settings → Change visibility → Public**. This publishes the compiled image, **not** your EZVIZ account information.
 
-Run `ha store reload` and check `version_latest: 0.2.1` before updating. Wait for the v0.2.1 image build to succeed first. If the image pull fails with access denied, check the GHCR package visibility. If it fails for DNS/connectivity, inspect the Supervisor logs.
+Run `ha store reload` and check `version_latest: 0.2.2` before updating. Wait for the v0.2.2 image build to succeed first. If the image pull fails with access denied, check the GHCR package visibility. If it fails for DNS/connectivity, inspect the Supervisor logs.

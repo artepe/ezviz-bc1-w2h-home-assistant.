@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2 - Restore video defaults and isolate audio experiments (2026-10-15)
+
+- Restore `#video=copy` and `media: video` in default snippets and examples after a report that the 0.2.1 audio configuration stopped video playback. The exact failure needs a fresh go2rtc log; AAC audio playback is not certified on BC1 hardware.
+- Keep **Test audio** and add clearly marked experimental audio snippets under a separate disclosure. They use a distinct `_audio_test` alias and temporary card, preserving the working video alias.
+- Clarify that detecting an audio track does not prove microphone volume, valid audio packets, or successful browser playback. Explain how to restore existing go2rtc/card settings; installing the app does not edit them.
+- Add a regression check that audio examples cannot replace the primary video stream alias. Existing camera storage, ports, authentication and proxy commands are unchanged.
+
 ## 0.2.1 - Audio settings and source-track diagnostics (2026-10-15)
 
 - Fix generated go2rtc settings to request `#video=copy#audio=aac` and Lovelace cards to request `media: video,audio`. The previous video-only source causes go2rtc to add FFmpeg `-an`, disabling audio. AAC is re-encoded to avoid the previously observed AAC global-header copy error.

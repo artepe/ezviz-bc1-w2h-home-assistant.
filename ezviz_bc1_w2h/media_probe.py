@@ -53,4 +53,4 @@ def inspect_audio(source: str) -> dict[str, object]:
     channels = audio.get("channels")
     if isinstance(channels, int) and not isinstance(channels, bool) and 0 < channels <= 32:
         details.append(f"{channels} channel(s)")
-    return {"ok": True, "audio": True, "message": f"Audio track received from the camera proxy: {', '.join(details)}. Use the audio-enabled go2rtc and Lovelace settings below, restart go2rtc, and unmute the player. This checks the track, not microphone volume."}
+    return {"ok": True, "audio": True, "message": f"Audio track received from the camera proxy: {', '.join(details)}. You can try Experimental audio test below using its separate stream and temporary card. Keep the working video settings. This checks the track, not microphone volume or successful browser playback."}

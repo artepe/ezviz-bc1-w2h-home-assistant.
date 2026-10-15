@@ -3,7 +3,7 @@
 # Requires HACS AlexxIT/WebRTC integration connected to go2rtc.
 # The url must match the stream name in examples/go2rtc.yaml.
 # Manual Lovelace card; on-demand use is preferable for a battery camera.
-# Audio-enabled variant: source audio must exist; unmute the player to listen.
+# Video-only default. Use a separate temporary card for audio experiments; see docs/AUDIO.md.
 type: vertical-stack
 cards:
   - type: markdown
@@ -14,7 +14,7 @@ cards:
   - type: custom:webrtc-camera
     url: ezviz_bc1
     mode: mse
-    media: video,audio
+    media: video
     ui: true
     muted: true
     title: EZVIZ BC1 – LIVE

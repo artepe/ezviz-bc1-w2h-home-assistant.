@@ -120,10 +120,22 @@ class CameraConfigurationTests(unittest.TestCase):
         snippets = camera.snippets()
         self.assertIn("ezviz_bc1_2:", snippets["go2rtc"])
         self.assertIn("127.0.0.1:8559/HUB001-CAM002.ts#video=copy", snippets["go2rtc"])
-        self.assertIn("#video=copy#audio=aac", snippets["go2rtc"])
-        self.assertIn("media: video,audio\n", snippets["lovelace"])
+        self.assertNotIn("#audio=", snippets["go2rtc"])
+        self.assertIn("media: video\n", snippets["lovelace"])
         self.assertIn("muted: true\n", snippets["lovelace"])
         self.assertIn('title: "Side \\"door\\""', snippets["lovelace"])
+
+    def test_audio_experiment_does_not_replace_working_video_alias(self):
+        for port in (8558, 8559):
+            camera = Camera("Front", "HUB001-CAM001", port)
+            snippets = camera.snippets()
+            self.assertIn(f"\n  {camera.stream}:\n", snippets["go2rtc"])
+            self.assertNotIn("#audio=", snippets["go2rtc"])
+            self.assertIn(f"\n  {camera.stream}_audio_test:\n", snippets["go2rtc_audio"])
+            self.assertNotIn(f"\n  {camera.stream}:\n", snippets["go2rtc_audio"])
+            self.assertIn(f"127.0.0.1:{port}/HUB001-CAM001.ts#video=copy#audio=aac", snippets["go2rtc_audio"])
+            self.assertIn(f"url: {camera.stream}_audio_test\n", snippets["lovelace_audio"])
+            self.assertIn("media: video,audio\n", snippets["lovelace_audio"])
 
     def test_release_tags_are_read_from_manifest(self):
         release = metadata(ROOT)

@@ -1,54 +1,63 @@
-# Camera audio / Kameran aani (v0.2.1)
+# Video recovery and audio experiments (v0.2.2)
 
-Vanha kameranakyma antoi asetukset `#video=copy` ja `media: video`. Ne rajaavat aanen pois: go2rtc kaynnistaa silloin FFmpegin parametrilla `-an`. Version 0.2.1 kopioitavat asetukset pyytavat myos aanen.
+**Jos aaniasetus pysaytti videon, palauta ensin aiemmin toiminut videomalli.** Version 0.2.1 oletusmallit pyysivat AAC-aanta ennen sen varmistamista BC1-laitteistolla. Taman jalkeen videon kaynnistyminen epaonnistui yhdessa raportissa. Tarkan syyn selvittamiseen tarvitaan uusi go2rtc-loki; pelkka asetuksen muutos ei todista, missa virhe syntyi.
 
-## Paivitys ja asetukset
+## Palauta video
 
-1. Paivita olemassa oleva EZVIZ-lisaosa versioon **0.2.1**, kun sen GitHub Actions -rakennus on onnistunut. Aiemmat kamerat ja portit sailyvat.
-2. Valitse **Open Web UI -> kameran Connection & dashboard setup**. Korvaa vanhat kameralahteet go2rtc:n asetuksissa uusilla malleilla. Ala lisaa toista `streams:`-otsikkoa tai samaa kameran nimea uudelleen.
-3. Tallenna ja kaynnista **go2rtc** uudelleen. Pelkka EZVIZ-lisaosan paivitys ei muuta olemassa olevaa go2rtc-asetusta tai Lovelace-korttia.
-4. Korvaa myos kortin asetukset. Avaa kameran kuva ja poista mykistys soittimen kaiutinpainikkeesta. `muted: true` sallii kuvan automaattisen kaynnistymisen; aani avataan napsauttamalla.
-
-go2rtc (vaihda tunnukset omiin koko kameratunnuksiisi):
+Kayta kameranakyman tavallisia **Connection & dashboard setup** -malleja. Ne pyytavat taas vain videon:
 
 ```yaml
 streams:
   ezviz_bc1:
-    - "ffmpeg:http://127.0.0.1:8558/YOUR_W2H_SERIAL-YOUR_FIRST_BC1_SERIAL.ts#video=copy#audio=aac"
+    - "ffmpeg:http://127.0.0.1:8558/YOUR_W2H_SERIAL-YOUR_FIRST_BC1_SERIAL.ts#video=copy"
   ezviz_bc1_2:
+    - "ffmpeg:http://127.0.0.1:8559/YOUR_W2H_SERIAL-YOUR_SECOND_BC1_SERIAL.ts#video=copy"
+```
+
+Muuta molempiin olemassa oleviin kortteihin `media: video`. Tallenna ja kaynnista **go2rtc** uudelleen. Testaa yksi kamera kerrallaan.
+
+Lisaosan paivitys versioon **0.2.2** palauttaa kopioitavat oletusmallit. Se ei muuta aiemmin tallentamaasi go2rtc-asetusta tai Lovelace-korttia.
+
+## Test audio
+
+Sulje livekatselut ja valitse kameran **Test audio**. Testi tarkistaa lisaosan HTTP MPEG-TS -lahteen ennen go2rtc:ta, enintaan noin 22 sekunnin ajan.
+
+| Tulos | Merkitys / seuraava vaihe |
+| --- | --- |
+| **Audio track received ... AAC ...** | Lahteessa on aaniraidan metatiedot. Tama ei viela varmista oikeita aanipaketteja, mikrofonisignaalin voimakkuutta tai selaintoistoa. Aanen kokeilun voi tehda alla erillisella streamilla. |
+| **No audio track detected ... video only** | Lahteessa nakyi testissa vain videota. Tarkista kuuluuko aani EZVIZ-sovelluksessa ja onko mikrofoni/aanitallennus kaytossa. Jos sovelluksessa kuuluu aani, tarvitaan taman pilviformaatin aanituen lisaselvitys. |
+| **Timed out / Could not inspect ...** | Lahteen tutkiminen ei onnistunut. Tama ei todista aaniraidan puuttumista. Tarkista Test video ja kokeile uudelleen muiden livekatseluiden ollessa suljettuina. |
+
+## Experimental audio test
+
+Kokeile tata vasta, kun video toimii ja Test audio loytaa aaniraidan. Sailyta olemassa olevat `ezviz_bc1` / `ezviz_bc1_2` -lahteet ja kortit. Yhdista seuraava **uusi** avain olemassa olevaan `streams:`-osioon; ala lisaa toista `streams:`-otsikkoa. Esimerkki toiselle kameralle:
+
+```yaml
+streams:
+  ezviz_bc1_2_audio_test:
     - "ffmpeg:http://127.0.0.1:8559/YOUR_W2H_SERIAL-YOUR_SECOND_BC1_SERIAL.ts#video=copy#audio=aac"
 ```
 
-Toisen kameran kortti (ensimmaiselle `url: ezviz_bc1`):
+Tallenna ja kaynnista go2rtc uudelleen. Tee valiaikainen kortti:
 
 ```yaml
 type: custom:webrtc-camera
-url: ezviz_bc1_2
+url: ezviz_bc1_2_audio_test
 mode: mse
 media: video,audio
 ui: true
 muted: true
-title: EZVIZ BC1 - Camera 2
+title: EZVIZ BC1 - Audio test
 ```
 
-`audio=aac` muuntaa olemassa olevan aaniraidan AAC-muotoon MSE-katselua varten. Se ei luo aaniraitaa puuttuvan tilalle. `audio=copy` aiheutti aiemmassa laitteistotestissa virheen `AAC with no global headers is currently not supported`.
+Sulje muut livekatselut ja avaa vain testikortti. Poista mykistys kaiutinpainikkeesta. Jos toisto epaonnistuu, tallenna taman yrityksen go2rtc-loki ja palaa alkuperaisen kameran korttiin. Poista valiaikainen testistream tarvittaessa. Lisaosan **Experimental audio test** -osio antaa vastaavat kamerakohtaiset mallit.
 
-## Test audio
-
-Sulje muut livekatselut ja valitse kameran **Test audio**. Testi avaa kameran pilviyhteyden hetkeksi ja tarkistaa lisaosan oman HTTP MPEG-TS -lahteen ennen go2rtc:ta. Testi voi kestaa enintaan noin 22 sekuntia.
-
-| Tulos | Merkitys / seuraava vaihe |
-| --- | --- |
-| **Audio track received ... AAC ...** | Aaniraita paasee lisaosan lapi. Tarkista uudet go2rtc-asetukset, uudelleenkaynnistys, kortin `media: video,audio`, kaiutinpainike ja laitteen aanenvoimakkuus. Raita ei viela todista mikrofonisignaalin voimakkuutta. |
-| **No audio track detected ... video only** | Lahde lahetti testissa vain videota. Tarkista, kuuluuko aani EZVIZ-sovelluksessa ja onko kameran mikrofoni/aanitallennus kaytossa. Jos sovelluksessa kuuluu aani, tarvitaan taman pilvivirran aaniformaatin lisaselvitys; kortin muutos ei korjaa puuttuvaa raitaa. |
-| **Timed out / Could not inspect ...** | Yhteytta ei voitu varmistaa. Testaa video ja kokeile uudelleen, kun muut livekatselut on suljettu. Tama ei todista, etta kamera olisi aaneton. |
-
-Jos go2rtc:n uudessa lokissa nakyy viela `-an` samalla kameranimella, kaytossa on edelleen video-only-lahde. Uuden asetuksen FFmpeg-komennossa pitaaisi nakya `-c:a aac`.
+`audio=aac` muuntaa lahteessa olevan aanen AAC-muotoon. Se ei luo puuttuvaa aaniraitaa. `audio=copy` aiheutti aiemmassa testissa virheen `AAC with no global headers is currently not supported`.
 
 ## Streaming-library limits
 
-The app keeps its pinned [pyEzvizApi revision](https://github.com/RenierM26/pyEzvizApi/tree/6df75d95a2ee6a68fb71446ee74a55572e2014ea). Its [streaming contract](https://github.com/RenierM26/pyEzvizApi/blob/6df75d95a2ee6a68fb71446ee74a55572e2014ea/docs/streaming.md) describes descriptor-backed AAC-LC export with the correct media key. Descriptor-free RTP AAC and other classified audio codecs may remain video-only. MPEG-PS audio carries its own framing. The current app's proxy command has no forced audio-decryption flag; changing this without evidence of the actual stream could break working video.
+The app keeps the pinned [pyEzvizApi revision](https://github.com/RenierM26/pyEzvizApi/tree/6df75d95a2ee6a68fb71446ee74a55572e2014ea) and existing proxy command. Its [streaming contract](https://github.com/RenierM26/pyEzvizApi/blob/6df75d95a2ee6a68fb71446ee74a55572e2014ea/docs/streaming.md) describes descriptor-backed AAC-LC export with the correct media key. Descriptor-free RTP AAC and other classified audio codecs can remain video-only. MPEG-PS audio carries its own framing. The current proxy does not force audio decryption; changing this requires evidence of the actual source format.
 
-The source-track test helps distinguish these upstream limits from downstream configuration. It does not change camera microphone settings, add talkback, or certify audible sound on BC1 hardware. The automated transport fixtures prove AAC-track detection and video-only detection, not the camera's cloud behavior.
+Automated tests verify metadata detection using generated AAC/video and video-only MPEG-TS, plus isolation of experimental aliases. They do not certify real BC1 audio or reproduce every live-stream startup failure. **Test video** checks MPEG-TS transport bytes, not decoded picture quality.
 
-Official downstream references: [go2rtc FFmpeg](https://github.com/AlexxIT/go2rtc/tree/v1.9.14/internal/ffmpeg), [go2rtc codec compatibility](https://github.com/AlexxIT/go2rtc#codecs-madness), [WebRTC Camera card options](https://github.com/AlexxIT/WebRTC#configuration).
+Official downstream references: [go2rtc FFmpeg](https://github.com/AlexxIT/go2rtc/tree/v1.9.14/internal/ffmpeg), [go2rtc codec compatibility](https://github.com/AlexxIT/go2rtc#codecs-madness), [WebRTC Camera options](https://github.com/AlexxIT/WebRTC#configuration).
