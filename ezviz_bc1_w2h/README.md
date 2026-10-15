@@ -1,8 +1,10 @@
 # EZVIZ BC1 / W2H Cloud Proxy (TEST)
 
-**Experimental Raspberry Pi 5 / Home Assistant OS app - version 0.1.3.**
+**Experimental Raspberry Pi 5 / Home Assistant OS app - version 0.2.1.**
 
-Version 0.1.3 adds optional `camera_serial_2`. Camera 1 keeps port 8558; camera 2 uses port 8559, a separate private token file and its own supervised proxy. Existing one-camera configuration remains valid. Offline tests cover camera isolation and shutdown; the second live feed and simultaneous viewing need hardware verification.
+Use **Open Web UI -> Add new camera** to save cameras through Home Assistant Supervisor with readback verification. Existing camera serials and ports 8558 / 8559 remain supported. Each camera has a private token file and supervised proxy. [Current update guide](../docs/UPGRADE_0_2.md).
+
+**Audio fix in 0.2.1:** earlier generated settings disabled audio. New snippets use `#video=copy#audio=aac` and `media: video,audio`. Replace the existing go2rtc and card settings manually, restart go2rtc, and unmute the player. **Test audio** checks whether the source proxy supplies an audio track. Actual BC1 microphone sound still needs hardware verification. [Audio setup and diagnostics](../docs/AUDIO.md).
 
 Run [pyEzvizApi](https://github.com/RenierM26/pyEzvizApi) cloud live streaming on Raspberry Pi 5, replacing the currently verified MacBook relay. Requires EZVIZ account, W2H hub, BC1 subcamera, internet and go2rtc.
 
@@ -15,12 +17,12 @@ This add-on serves HTTP MPEG-TS at **127.0.0.1:8558** on the Home Assistant OS h
 ```yaml
 streams:
   ezviz_bc1:
-    - ffmpeg:http://127.0.0.1:8558/YOUR_HUB_SERIAL-YOUR_BC1_SERIAL.ts#video=copy
+    - "ffmpeg:http://127.0.0.1:8558/YOUR_HUB_SERIAL-YOUR_BC1_SERIAL.ts#video=copy#audio=aac"
 ```
 
 The HACS WebRTC Camera card uses `url: ezviz_bc1`; use [the complete YAML](../examples/lovelace-webrtc.yaml). No external internet port forwarding. No native RTSP from the W2H hub.
 
-For a second camera, add its full serial to `camera_serial_2` in app Configuration YAML. Add a go2rtc stream named `ezviz_bc1_2` pointing to `http://127.0.0.1:8559/YOUR_HUB_SERIAL-YOUR_SECOND_BC1_SERIAL.ts` and a WebRTC card with `url: ezviz_bc1_2`. See the [two-camera go2rtc example](../examples/go2rtc-two-cameras.yaml) and [two-camera Lovelace example](../examples/lovelace-two-cameras.yaml).
+For a second camera, use **Add new camera**. The legacy `camera_serial_2` option is also supported. Add a go2rtc stream named `ezviz_bc1_2` pointing to port 8559 and a WebRTC card with `url: ezviz_bc1_2`. See the [two-camera go2rtc example](../examples/go2rtc-two-cameras.yaml) and [two-camera Lovelace example](../examples/lovelace-two-cameras.yaml).
 
 ## Prebuilt container image (v0.1.2)
 
@@ -28,4 +30,4 @@ The GitHub Actions job **successfully built and published** `ghcr.io/artepe/ezvi
 
 **Important:** GitHub Container Registry packages may start **Private**, even when this code repository is Public. To allow Home Assistant OS to pull the image, open **GitHub → your profile → Packages → ezviz-bc1-w2h → Package settings → Change visibility → Public**. This publishes the compiled image, **not** your EZVIZ account information.
 
-Run `ha store reload` and check `version_latest: 0.1.3` before updating for two cameras. Wait for the v0.1.3 image build to succeed first. If the image pull fails with access denied, check the GHCR package visibility. If it fails for DNS/connectivity, inspect the Supervisor logs.
+Run `ha store reload` and check `version_latest: 0.2.1` before updating. Wait for the v0.2.1 image build to succeed first. If the image pull fails with access denied, check the GHCR package visibility. If it fails for DNS/connectivity, inspect the Supervisor logs.

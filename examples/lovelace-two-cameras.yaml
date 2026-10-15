@@ -1,19 +1,20 @@
 # Requires the existing HACS WebRTC Camera integration connected to go2rtc.
 # Configure and test both streams in go2rtc before adding this manual card.
 # Continuous viewing increases battery use; live two-camera testing is pending.
+# Use audio-enabled go2rtc sources and unmute each player to listen.
 type: vertical-stack
 cards:
   - type: custom:webrtc-camera
     url: ezviz_bc1
     mode: mse
-    media: video
+    media: video,audio
     ui: true
     muted: true
     title: EZVIZ kamera 1
   - type: custom:webrtc-camera
     url: ezviz_bc1_2
     mode: mse
-    media: video
+    media: video,audio
     ui: true
     muted: true
     title: EZVIZ kamera 2

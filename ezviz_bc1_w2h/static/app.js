@@ -79,8 +79,10 @@ function render() {
     }
     const actions = element("div", "card-actions");
     const test = button(testing.has(camera.port) ? "Checking..." : "Test video", "button secondary test-button", () => testCamera(camera));
+    const audioTest = button("Test audio", "button secondary", () => testCamera(camera, true));
     test.disabled = testing.has(camera.port);
-    actions.append(test, button("Edit", "button quiet", () => openCamera(camera)), button("Remove", "button quiet", () => openRemove(camera)));
+    audioTest.disabled = testing.has(camera.port);
+    actions.append(test, audioTest, button("Edit", "button quiet", () => openCamera(camera)), button("Remove", "button quiet", () => openRemove(camera)));
     card.append(head, meta, actions);
     if (results.has(camera.port)) {
       const result = results.get(camera.port);
@@ -91,6 +93,7 @@ function render() {
     details.addEventListener("toggle", () => details.open ? expanded.add(camera.port) : expanded.delete(camera.port));
     details.append(element("summary", "", "Connection & dashboard setup"));
     details.append(element("p", "", "Merge the stream entry into your existing go2rtc streams section, then add the Lovelace card to your dashboard."));
+    details.append(element("p", "", "Audio: replace older video-only settings in both go2rtc and Lovelace, then restart go2rtc. Open the card and unmute its speaker. Test audio checks whether the proxy supplies an audio track; it does not measure microphone volume."));
     snippet("go2rtc", camera.go2rtc, details, 4);
     snippet("Lovelace card", camera.lovelace, details, 8);
     card.append(details); cards.push(card);
@@ -156,9 +159,9 @@ async function removeCamera(event) {
   finally { confirm.disabled = false; }
 }
 
-async function testCamera(camera) {
+async function testCamera(camera, audio = false) {
   testing.add(camera.port); render();
-  try { results.set(camera.port, await request(`api/cameras/${camera.port}/test`, "POST", {})); }
+  try { results.set(camera.port, await request(`api/cameras/${camera.port}/${audio ? "test-audio" : "test"}`, "POST", {})); }
   catch (error) { results.set(camera.port, {ok: false, message: error.message}); }
   finally { testing.delete(camera.port); render(); }
 }

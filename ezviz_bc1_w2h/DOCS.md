@@ -1,4 +1,6 @@
-# EZVIZ BC1 / W2H Cloud Proxy - camera manager v0.2.0
+# EZVIZ BC1 / W2H Cloud Proxy - camera manager v0.2.1
+
+**Aani (0.2.1):** uudet kopioitavat asetukset ovat `#video=copy#audio=aac` ja `media: video,audio`. Korvaa myos aiemmin tallennetut go2rtc- ja korttiasetukset ja kaynnista go2rtc uudelleen. **Test audio** kertoo, onko lisaosan lahteessa aaniraita. [Aanen kayttoonotto ja vianhaku](../docs/AUDIO.md).
 
 **Uusi kameran hallinta:** paivita olemassa oleva lisaosa versioon **0.2.0** ja valitse **Open Web UI / Avaa kayttoliittyma -> Add new camera**. Asetusten tallennus varmennetaan Home Assistantista, ja aiemmat kameratunnukset seka portit sailyvat tuettuina. Lisaosa loytyy myos sivupalkista nimella **EZVIZ Cameras**, kun Show in sidebar on valittu.
 

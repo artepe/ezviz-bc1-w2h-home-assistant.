@@ -120,6 +120,9 @@ class CameraConfigurationTests(unittest.TestCase):
         snippets = camera.snippets()
         self.assertIn("ezviz_bc1_2:", snippets["go2rtc"])
         self.assertIn("127.0.0.1:8559/HUB001-CAM002.ts#video=copy", snippets["go2rtc"])
+        self.assertIn("#video=copy#audio=aac", snippets["go2rtc"])
+        self.assertIn("media: video,audio\n", snippets["lovelace"])
+        self.assertIn("muted: true\n", snippets["lovelace"])
         self.assertIn('title: "Side \\"door\\""', snippets["lovelace"])
 
     def test_release_tags_are_read_from_manifest(self):
@@ -264,6 +267,31 @@ class IngressTests(SupervisorFixture):
         self.assertEqual(status, 200)
         self.assertFalse(json.loads(body)["ok"])
         self.assertIn("8558", json.loads(body)["message"])
+
+    def test_audio_probe_uses_only_saved_camera_and_requires_csrf(self):
+        with patch("web.inspect_audio", return_value={"ok": True, "audio": True, "message": "AAC"}) as probe:
+            status, _, _ = self.call("POST", "/api/cameras/8558/test-audio", {}, csrf=False)
+            self.assertEqual(status, 403)
+            probe.assert_not_called()
+            status, _, _ = self.call("POST", "/api/cameras/1984/test-audio", {"url": "http://untrusted.invalid/"})
+            self.assertEqual(status, 400)
+            probe.assert_not_called()
+            status, body, _ = self.call("POST", "/api/cameras/8558/test-audio", {"url": "http://untrusted.invalid/"})
+            self.assertEqual(status, 200)
+            self.assertTrue(json.loads(body)["audio"])
+            probe.assert_called_once_with("http://127.0.0.1:8558/HUB001-CAM001.ts")
+
+    def test_concurrent_audio_probe_is_bounded(self):
+        self.ingress.service.audio_test_lock.acquire()
+        try:
+            with patch("web.inspect_audio") as probe:
+                status, body, _ = self.call("POST", "/api/cameras/8558/test-audio", {})
+                self.assertEqual(status, 200)
+                self.assertIsNone(json.loads(body)["audio"])
+                self.assertIn("Another audio test", body)
+                probe.assert_not_called()
+        finally:
+            self.ingress.service.audio_test_lock.release()
 
 
 class RuntimeTests(unittest.TestCase):

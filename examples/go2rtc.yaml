@@ -1,10 +1,12 @@
-# Proven Raspberry Pi 5 / Home Assistant OS source (2026-10-11).
-# Install ezviz_bc1_w2h add-on v0.1.2 with host_network: true,
+# Raspberry Pi 5 / Home Assistant OS audio-enabled source (v0.2.1).
+# Install ezviz_bc1_w2h with host_network: true,
 # configure EZVIZ camera_serial and log in, then start it.
 # Same go2rtc hostname and stream name must be used in Lovelace.
 # Replace the serial placeholder with your own full BC1 device ID.
-# ffmpeg video=copy (no audio=copy): avoids AAC global header error.
+# Re-encode source audio as AAC; audio=copy previously failed on global headers.
+# Test audio in the camera manager checks whether the source has audio.
+# Hardware audio is not yet verified. See docs/AUDIO.md.
 # When merging with an existing config, do NOT duplicate the streams: key.
 streams:
   ezviz_bc1:
-    - ffmpeg:http://127.0.0.1:8558/YOUR_W2H_SERIAL-YOUR_BC1_SERIAL.ts#video=copy
+    - "ffmpeg:http://127.0.0.1:8558/YOUR_W2H_SERIAL-YOUR_BC1_SERIAL.ts#video=copy#audio=aac"

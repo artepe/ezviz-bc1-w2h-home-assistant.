@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1 - Audio settings and source-track diagnostics (2026-10-15)
+
+- Fix generated go2rtc settings to request `#video=copy#audio=aac` and Lovelace cards to request `media: video,audio`. The previous video-only source causes go2rtc to add FFmpeg `-an`, disabling audio. AAC is re-encoded to avoid the previously observed AAC global-header copy error.
+- Add **Test audio** to the camera manager. Inspect the configured loopback source with a bounded FFprobe process, report audio codec/rate/channels, and distinguish video-only output from connection/probe failure. Only one audio probe runs at a time. No source URLs, account data or upstream error output are returned.
+- Existing go2rtc and dashboard configuration must be replaced manually with the new snippets, and go2rtc restarted. The app does not edit these external configurations.
+- Keep the pinned streaming library and working proxy commands unchanged. Its RTP audio export supports descriptor-backed AAC-LC with the required media key; other upstream formats can remain video-only. Actual BC1 microphone audio remains unverified on hardware.
+- Validate audio metadata detection using generated AAC/video and video-only MPEG-TS fixtures, alongside the existing persistence, ingress and lifecycle tests.
+
 ## 0.2.0 - Camera manager and update packaging (2026-10-15)
 
 - Added an ingress-only **EZVIZ Cameras** panel with **Add new camera**, editing, removal, an on-demand video transport test, and copyable go2rtc / Lovelace settings.

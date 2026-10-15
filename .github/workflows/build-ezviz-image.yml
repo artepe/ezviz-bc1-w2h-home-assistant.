@@ -51,11 +51,13 @@ jobs:
           build-args: |
             BUILD_VERSION=${{ steps.release.outputs.version }}
             BUILD_ARCH=aarch64
-      - name: Check published image (Python CLI and FFmpeg)
+      - name: Check published image (Python CLI, FFmpeg and audio detection)
         run: |
           docker run --rm --platform linux/arm64 --entrypoint /opt/ezviz-venv/bin/pyezvizapi "$IMAGE:$VERSION" --help >/dev/null
           docker run --rm --platform linux/arm64 --entrypoint /usr/bin/ffmpeg "$IMAGE:$VERSION" -version
+          docker run --rm --platform linux/arm64 --entrypoint /usr/bin/ffprobe "$IMAGE:$VERSION" -version
           docker run --rm --platform linux/arm64 --entrypoint /opt/ezviz-venv/bin/python "$IMAGE:$VERSION" -c 'import sys; sys.path.insert(0, "/app"); import camera_config, supervisor_client, web, runner; from pathlib import Path; assert (Path("/app/static/index.html")).is_file()'
+          docker run --rm --platform linux/arm64 --volume "$PWD/tests:/tests:ro" --env PYTHONPATH=/app --entrypoint /opt/ezviz-venv/bin/python "$IMAGE:$VERSION" -m unittest discover -s /tests -p test_audio_probe.py -v
         env:
           IMAGE: ${{ steps.release.outputs.image }}
           VERSION: ${{ steps.release.outputs.version }}

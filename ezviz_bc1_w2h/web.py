@@ -16,6 +16,7 @@ from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from camera_config import Camera, next_port, parse_cameras, validate_name, validate_serial
+from media_probe import inspect_audio
 from supervisor_client import SettingsError, SupervisorClient
 
 STATIC = Path(__file__).with_name("static")
@@ -28,6 +29,7 @@ class CameraService:
     def __init__(self, client: SupervisorClient, runtime):
         self.client = client
         self.runtime = runtime
+        self.audio_test_lock = threading.Lock()
 
     def change(self, operation: str, payload: dict, port: int | None = None) -> None:
         with self.client.lock:
@@ -84,6 +86,20 @@ class CameraService:
             return {"ok": False, "message": f"The camera proxy returned HTTP {error.code}. Check the full camera serial and its access in the EZVIZ app."}
         except (OSError, URLError):
             return {"ok": False, "message": "No video data arrived within 15 seconds. Check the camera and its EZVIZ cloud connection, then try again."}
+
+    def test_audio(self, port: int) -> dict[str, object]:
+        with self.client.lock:
+            cameras = parse_cameras(self.client.raw_options())
+        camera = next((camera for camera in cameras if camera.port == port), None)
+        if camera is None:
+            raise ValueError("Camera not found. Refresh this page.")
+        if not self.audio_test_lock.acquire(blocking=False):
+            return {"ok": False, "audio": None, "message": "Another audio test is running. Wait for it to finish and try again."}
+        try:
+            # The browser selects a saved camera only, never an arbitrary URL.
+            return inspect_audio(f"http://127.0.0.1:{camera.port}/{camera.serial}.ts")
+        finally:
+            self.audio_test_lock.release()
 
 
 class CameraServer(ThreadingHTTPServer):
@@ -179,12 +195,13 @@ class CameraHandler(BaseHTTPRequestHandler):
             self.respond(400, {"error": "Invalid form data."})
             return
         path = urlsplit(self.path).path
-        match = re.fullmatch(r"/api/cameras/(\d+)(/test)?", path)
+        match = re.fullmatch(r"/api/cameras/(\d+)(/test|/test-audio)?", path)
         try:
             if operation == "add" and path == "/api/cameras":
                 self.server.service.change("add", payload)
             elif match and operation == "add" and match.group(2):
-                self.respond(200, self.server.service.test(int(match.group(1))))
+                test = self.server.service.test_audio if match.group(2) == "/test-audio" else self.server.service.test
+                self.respond(200, test(int(match.group(1))))
                 return
             elif match and not match.group(2) and operation in ("edit", "remove"):
                 self.server.service.change(operation, payload, int(match.group(1)))
