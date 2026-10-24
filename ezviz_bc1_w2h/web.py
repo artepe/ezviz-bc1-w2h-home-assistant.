@@ -55,8 +55,27 @@ def explain_proxy_error(status: int, payload: bytes) -> str:
         return "HTTP 502: EZVIZ cloud stream provided no video before the timeout. Check camera wake-up and connectivity."
     if any(term in reason for term in ("connection refused", "connection reset", "network unreachable", "dns", "socket")):
         return "HTTP 502: EZVIZ cloud stream could not establish or keep its network connection."
-    if any(term in reason for term in ("ffmpeg", "codec", "mpeg", "decrypt")):
-        return "HTTP 502: EZVIZ cloud media decoding or conversion failed."
+    # Keep these classifications specific: the old generic "media decoding"
+    # result conflated encrypted VTM packets, RTP codec detection and FFmpeg.
+    # Only fixed messages are returned, never text from the upstream server.
+    if "received encrypted vtm stream packet" in reason:
+        return "HTTP 502 [VTM_ENCRYPTED]: EZVIZ returned encrypted video packets. This proxy is not configured for media decryption; a codec restart will not resolve it."
+    if "could not detect rtp video codec" in reason:
+        return "HTTP 502 [RTP_CODEC]: The EZVIZ stream arrived, but no recognizable H.264/H.265 video codec was found in its RTP packets."
+    if "unsupported rtp video codec" in reason:
+        return "HTTP 502 [RTP_CODEC_UNSUPPORTED]: The cloud stream uses a video codec not supported by the proxy."
+    if "rtp cloud stream did not contain a complete video nal unit" in reason:
+        return "HTTP 502 [RTP_INCOMPLETE]: The cloud stream delivered RTP packets without a complete video frame."
+    if "video on its video route" in reason or "routed video before startup deadline" in reason:
+        return "HTTP 502 [RTP_ROUTE]: EZVIZ supplied no video on the negotiated RTP route."
+    if "ffmpeg" in reason:
+        return "HTTP 502 [FFMPEG_REMUX]: FFmpeg failed while converting the cloud stream to MPEG-TS."
+    if "mpeg" in reason:
+        return "HTTP 502 [MPEG_TRANSPORT]: The cloud stream container or MPEG transport could not be handled."
+    if "decrypt" in reason:
+        return "HTTP 502 [MEDIA_DECRYPT]: EZVIZ video decryption failed or was unavailable."
+    if "codec" in reason:
+        return "HTTP 502 [MEDIA_CODEC]: The cloud video codec could not be handled."
     return default
 
 
