@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.4 - Safe EZVIZ cloud video diagnostics
+
+- Camera manager Test video now classifies the upstream HTTP 502 response from pyEzvizApi into cloud session, VTDU video token, VTM resource/server, no-media timeout, network and media conversion cases.
+- Raw upstream error bodies are never logged or shown because they can include EZVIZ tokens, camera serials and private cloud URLs.
+- If the upstream error specifically reports an invalid or expired EZVIZ cloud session, schedule a token refresh and restart the affected proxy sessions. Coalesce requests and allow at most one refresh every five minutes to avoid repeated login attempts. General video timeouts and sleeping battery cameras never trigger this reset.
+- Add offline regression tests for safe messages, secret non-disclosure and refresh backoff. Camera sources and credentials remain unchanged.
+
+
 ## 0.2.3 - Restore Supervisor environment through s6 startup (2026-10-15)
 
 - Launch `run.sh` through `/command/with-contenv bash`, restoring the container environment before starting Python. The previous plain Bash launcher did not load the environment saved by s6, including `SUPERVISOR_TOKEN` and `APP_VERSION`.

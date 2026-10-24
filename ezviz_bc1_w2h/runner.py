@@ -227,6 +227,23 @@ class Runtime:
         self.message = "Loading camera settings."
         self.last_force = False
         self.login_retry_at = 0.0
+        self.refresh_pending = False
+        self.last_refresh_requested = float("-inf")
+
+    def request_session_refresh(self) -> bool:
+        """Coalesce stale-session recovery and rate-limit it to once per five minutes.
+
+        Called by the camera manager only after a known authentication/session
+        failure, never for generic timeouts or sleeping battery cameras.
+        """
+        now = time.monotonic()
+        with self.lock:
+            if self.refresh_pending or now - self.last_refresh_requested < 300:
+                return False
+            self.last_refresh_requested = now
+            self.refresh_pending = True
+            self.reload.set()
+            return True
 
     def apply(self, raw: dict[str, object], now: float) -> None:
         global WORKERS
@@ -243,7 +260,9 @@ class Runtime:
             desired = {camera.port: camera for camera in cameras}
             removed = [worker for worker in WORKERS if worker.port not in desired or desired[worker.port].serial != worker.serial]
             force_requested = force_relogin and not self.last_force
-            if force_requested:
+            refresh_requested = self.refresh_pending
+            self.refresh_pending = False
+            if force_requested or refresh_requested:
                 removed = list(WORKERS)
             self.last_force = force_relogin
         # Don't hold the UI lock while waiting for subprocesses or cloud login.
@@ -251,8 +270,10 @@ class Runtime:
         with self.lock:
             WORKERS = [worker for worker in WORKERS if worker not in removed]
             poll_workers(WORKERS, retry, now)
-        if force_requested:
+        if force_requested or refresh_requested:
             self.clear_tokens()
+            if refresh_requested:
+                log("EZVIZ cloud session rejected; refreshing saved session and camera proxies.")
 
         if not cameras:
             with self.lock:
