@@ -163,7 +163,7 @@ class ProxyErrorClassificationTests(unittest.TestCase):
             ("Cloud stream proxy supplied no media within the capture bound", "no video"),
             ("EZVIZ session expired", "cloud session"),
             ("Could not find VTM server for resource 111", "negotiation"),
-            ("FFmpeg could not transcode media", "conversion"),
+            ("FFmpeg could not transcode media", "FFMPEG_REMUX"),
         )
         for upstream, expected in cases:
             with self.subTest(upstream=expected):
