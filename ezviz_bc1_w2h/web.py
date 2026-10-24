@@ -25,6 +25,41 @@ INGRESS_PORT = 8788
 MAX_BODY = 32 * 1024
 
 
+def explain_proxy_error(status: int, payload: bytes) -> str:
+    """Classify the upstream HTTP error without exposing EZVIZ session secrets.
+
+    pyEzvizApi embeds str(PyEzvizError) in its HTML 502 response. That text
+    may contain cloud URLs, tokens, serials or other sensitive values.
+    Never return or log the raw upstream message.
+    """
+    default = (
+        f"The camera proxy returned HTTP {status}. "
+        "The EZVIZ cloud video request failed; detailed upstream data is hidden."
+    )
+    if status != 502:
+        return default
+    body = payload[:8192].decode("utf-8", errors="replace")
+    match = re.search(r"<p>\s*Message:\s*(.*?)</p>", body, re.I | re.S)
+    if not match:
+        return default
+    reason = html.unescape(re.sub(r"<[^>]*>", "", match.group(1))).lower()
+    if any(term in reason for term in ("expired", "unauthorized", "not authenticated", "authentication failed", "invalid session", "invalid token")):
+        return "HTTP 502: EZVIZ rejected the cloud session. Check the EZVIZ account and use Sign in again."
+    if "vtdu token" in reason:
+        return "HTTP 502: EZVIZ could not obtain its cloud video token (VTDU). Check the account and cloud service."
+    if "vtm resource" in reason or "resource metadata" in reason:
+        return "HTTP 502: EZVIZ did not provide a video resource for this camera. Check whether the camera is awake and available for live view."
+    if any(term in reason for term in ("vtm server", "vtm endpoint", "vtm port", "vtm negotiation")):
+        return "HTTP 502: EZVIZ cloud video server negotiation failed (VTM)."
+    if any(term in reason for term in ("no media", "no video", "deadline", "timed out", "timeout", "no packets")):
+        return "HTTP 502: EZVIZ cloud stream provided no video before the timeout. Check camera wake-up and connectivity."
+    if any(term in reason for term in ("connection refused", "connection reset", "network unreachable", "dns", "socket")):
+        return "HTTP 502: EZVIZ cloud stream could not establish or keep its network connection."
+    if any(term in reason for term in ("ffmpeg", "codec", "mpeg", "decrypt")):
+        return "HTTP 502: EZVIZ cloud media decoding or conversion failed."
+    return default
+
+
 class CameraService:
     def __init__(self, client: SupervisorClient, runtime):
         self.client = client
@@ -82,8 +117,14 @@ class CameraService:
                     return {"ok": True, "message": "Video transport data received. Open the go2rtc player to check the picture."}
                 return {"ok": False, "message": "The proxy answered but did not return a complete MPEG-TS packet. Check the camera in the EZVIZ app."}
         except HTTPError as error:
-            error.close()
-            return {"ok": False, "message": f"The camera proxy returned HTTP {error.code}. Check the full camera serial and its access in the EZVIZ app."}
+            try:
+                # Read only a bounded error response, never a video stream.
+                payload = error.read(8192)
+            except OSError:
+                payload = b""
+            finally:
+                error.close()
+            return {"ok": False, "message": explain_proxy_error(error.code, payload)}
         except (OSError, URLError):
             return {"ok": False, "message": "No video data arrived within 15 seconds. Check the camera and its EZVIZ cloud connection, then try again."}
 
