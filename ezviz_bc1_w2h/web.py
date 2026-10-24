@@ -51,6 +51,8 @@ def explain_proxy_error(status: int, payload: bytes) -> str:
         return "HTTP 502: EZVIZ did not provide a video resource for this camera. Check whether the camera is awake and available for live view."
     if any(term in reason for term in ("vtm server", "vtm endpoint", "vtm port", "vtm negotiation")):
         return "HTTP 502: EZVIZ cloud video server negotiation failed (VTM)."
+    if "video on its video route" in reason or "routed video before startup deadline" in reason:
+        return "HTTP 502 [RTP_ROUTE]: EZVIZ supplied no video on the negotiated RTP route."
     if any(term in reason for term in ("no media", "no video", "deadline", "timed out", "timeout", "no packets")):
         return "HTTP 502: EZVIZ cloud stream provided no video before the timeout. Check camera wake-up and connectivity."
     if any(term in reason for term in ("connection refused", "connection reset", "network unreachable", "dns", "socket")):
@@ -66,8 +68,6 @@ def explain_proxy_error(status: int, payload: bytes) -> str:
         return "HTTP 502 [RTP_CODEC_UNSUPPORTED]: The cloud stream uses a video codec not supported by the proxy."
     if "rtp cloud stream did not contain a complete video nal unit" in reason:
         return "HTTP 502 [RTP_INCOMPLETE]: The cloud stream delivered RTP packets without a complete video frame."
-    if "video on its video route" in reason or "routed video before startup deadline" in reason:
-        return "HTTP 502 [RTP_ROUTE]: EZVIZ supplied no video on the negotiated RTP route."
     if "ffmpeg" in reason:
         return "HTTP 502 [FFMPEG_REMUX]: FFmpeg failed while converting the cloud stream to MPEG-TS."
     if "mpeg" in reason:
