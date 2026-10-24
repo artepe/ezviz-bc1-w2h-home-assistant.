@@ -20,7 +20,7 @@ from camera_config import Camera, parse_cameras, with_cameras
 from release_metadata import metadata
 import runner
 from supervisor_client import SettingsError, SupervisorClient
-from web import CameraServer, CameraService
+from web import CameraServer, CameraService, explain_proxy_error
 
 
 class FakeSupervisorHandler(BaseHTTPRequestHandler):
@@ -153,6 +153,41 @@ class CameraConfigurationTests(unittest.TestCase):
         workflow = (ROOT / ".github/workflows/build-ezviz-image.yml").read_text()
         self.assertIn("steps.release.outputs.version", workflow)
         self.assertNotIn("ezviz-bc1-w2h:0.1.", workflow)
+
+
+class ProxyErrorClassificationTests(unittest.TestCase):
+    def test_known_502_errors_produce_actionable_safe_messages(self):
+        cases = (
+            ("Could not find VTM resource for serial HUB001-CAM001", "video resource"),
+            ("Could not get VTDU token: Got {'tokens': ['private-token']}", "video token"),
+            ("Cloud stream proxy supplied no media within the capture bound", "no video"),
+            ("EZVIZ session expired", "cloud session"),
+            ("Could not find VTM server for resource 111", "negotiation"),
+            ("FFmpeg could not transcode media", "conversion"),
+        )
+        for upstream, expected in cases:
+            with self.subTest(upstream=expected):
+                payload = f"<html><p>Message: {upstream}</p></html>".encode()
+                result = explain_proxy_error(502, payload)
+                self.assertIn(expected, result)
+                self.assertNotIn("HUB001-CAM001", result)
+                self.assertNotIn("private-token", result)
+
+    def test_unknown_error_does_not_leak_tokens_urls_or_usernames(self):
+        payload = (
+            b"<p>Message: unexpected response https://private.example/"
+            b"?token=secret-value&amp;email=hidden@example.invalid</p>"
+        )
+        result = explain_proxy_error(502, payload)
+        self.assertIn("HTTP 502", result)
+        self.assertNotIn("secret-value", result)
+        self.assertNotIn("hidden@example.invalid", result)
+        self.assertNotIn("private.example", result)
+
+    def test_non_502_and_unexpected_html_are_safe(self):
+        self.assertIn("HTTP 403", explain_proxy_error(403, b"secret-key"))
+        self.assertIn("HTTP 502", explain_proxy_error(502, b"<p>secret-key</p>"))
+        self.assertNotIn("secret-key", explain_proxy_error(502, b"<p>secret-key</p>"))
 
 
 class PersistenceTests(SupervisorFixture):
