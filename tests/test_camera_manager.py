@@ -190,6 +190,28 @@ class ProxyErrorClassificationTests(unittest.TestCase):
         self.assertNotIn("secret-key", explain_proxy_error(502, b"<p>secret-key</p>"))
 
 
+class SessionRecoveryTests(unittest.TestCase):
+    def test_recovery_requests_are_coalesced_and_limited(self):
+        runtime = runner.Runtime()
+        with patch("runner.time.monotonic", return_value=1000):
+            self.assertTrue(runtime.request_session_refresh())
+            self.assertTrue(runtime.reload.is_set())
+            self.assertFalse(runtime.request_session_refresh())
+        # After the pending recovery was consumed, a second refresh still
+        # cannot be requested before the five-minute cooldown.
+        runtime.refresh_pending = False
+        with patch("runner.time.monotonic", return_value=1200):
+            self.assertFalse(runtime.request_session_refresh())
+        with patch("runner.time.monotonic", return_value=1301):
+            self.assertTrue(runtime.request_session_refresh())
+
+    def test_502_session_refresh_is_opt_in_by_error_class(self):
+        stale = explain_proxy_error(502, b"<p>Message: EZVIZ session expired</p>")
+        sleeping = explain_proxy_error(502, b"<p>Message: Cloud stream supplied no media</p>")
+        self.assertTrue(stale.startswith("HTTP 502: EZVIZ rejected the cloud session"))
+        self.assertFalse(sleeping.startswith("HTTP 502: EZVIZ rejected the cloud session"))
+
+
 class PersistenceTests(SupervisorFixture):
     def test_effective_self_config_resolves_secrets_without_changing_raw_options(self):
         self.supervisor.effective_options = {**self.supervisor.options, "password": "resolved-offline-secret"}
