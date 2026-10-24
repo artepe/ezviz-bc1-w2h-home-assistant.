@@ -163,7 +163,7 @@ class ProxyErrorClassificationTests(unittest.TestCase):
             ("Cloud stream proxy supplied no media within the capture bound", "no video"),
             ("EZVIZ session expired", "cloud session"),
             ("Could not find VTM server for resource 111", "negotiation"),
-            ("FFmpeg could not transcode media", "conversion"),
+            ("FFmpeg could not transcode media", "FFMPEG_REMUX"),
         )
         for upstream, expected in cases:
             with self.subTest(upstream=expected):
@@ -172,6 +172,25 @@ class ProxyErrorClassificationTests(unittest.TestCase):
                 self.assertIn(expected, result)
                 self.assertNotIn("HUB001-CAM001", result)
                 self.assertNotIn("private-token", result)
+
+    def test_specific_media_failure_codes_distinguish_root_causes(self):
+        cases = [
+            ("Received encrypted VTM stream packet; media decryption is not implemented", "VTM_ENCRYPTED"),
+            ("Could not detect RTP video codec in cloud stream", "RTP_CODEC"),
+            ("Unsupported RTP video codec: VP9", "RTP_CODEC_UNSUPPORTED"),
+            ("RTP cloud stream did not contain a complete video NAL unit", "RTP_INCOMPLETE"),
+            ("RTP cloud stream supplied no routed video before startup deadline", "RTP_ROUTE"),
+            ("FFmpeg exited without MPEG-TS output", "FFMPEG_REMUX"),
+            ("Cloud stream carries MPEG-TS, not MPEG-PS", "MPEG_TRANSPORT"),
+            ("Could not detect MPEG-PS video encryption mode", "MPEG_TRANSPORT"),
+        ]
+        for reason, code in cases:
+            with self.subTest(code=code):
+                payload = f"<p>Message: {reason} token=SECRET_VALUE camera=HUB001-CAM001</p>".encode()
+                result = explain_proxy_error(502, payload)
+                self.assertIn(f"[{code}]", result)
+                self.assertNotIn("SECRET_VALUE", result)
+                self.assertNotIn("HUB001-CAM001", result)
 
     def test_unknown_error_does_not_leak_tokens_urls_or_usernames(self):
         payload = (

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.5 - Distinguish cloud media failure causes
+
+- Improve Camera manager Test video HTTP 502 reporting: identify encrypted VTM stream packets, RTP codec detection, missing video frames/routes, FFmpeg remux failures, MPEG transport and decryption issues separately.
+- Continue to use allowlisted, fixed messages; never log or display raw cloud URLs, session tokens, serials or error bodies.
+- No camera configuration, stream parameters or upstream pyEzvizApi dependency changed. Further corrective changes depend on the new diagnostic code from actual hardware.
+
+
 ## 0.2.4 - Safe EZVIZ cloud video diagnostics
 
 - Camera manager Test video now classifies the upstream HTTP 502 response from pyEzvizApi into cloud session, VTDU video token, VTM resource/server, no-media timeout, network and media conversion cases.
