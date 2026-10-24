@@ -4,7 +4,8 @@
 
 - Camera manager Test video now classifies the upstream HTTP 502 response from pyEzvizApi into cloud session, VTDU video token, VTM resource/server, no-media timeout, network and media conversion cases.
 - Raw upstream error bodies are never logged or shown because they can include EZVIZ tokens, camera serials and private cloud URLs.
-- Add offline regression tests for safe messages and secret non-disclosure. Camera sources, credentials and streaming logic are unchanged.
+- If the upstream error specifically reports an invalid or expired EZVIZ cloud session, schedule a token refresh and restart the affected proxy sessions. Coalesce requests and allow at most one refresh every five minutes to avoid repeated login attempts. General video timeouts and sleeping battery cameras never trigger this reset.
+- Add offline regression tests for safe messages, secret non-disclosure and refresh backoff. Camera sources and credentials remain unchanged.
 
 
 ## 0.2.3 - Restore Supervisor environment through s6 startup (2026-10-15)
