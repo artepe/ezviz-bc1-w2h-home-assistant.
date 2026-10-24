@@ -124,7 +124,15 @@ class CameraService:
                 payload = b""
             finally:
                 error.close()
-            return {"ok": False, "message": explain_proxy_error(error.code, payload)}
+            message = explain_proxy_error(error.code, payload)
+            # Only a confirmed stale authentication/session response merits
+            # re-login. Generic 502/no-media errors may simply be sleeping BC1s.
+            if message.startswith("HTTP 502: EZVIZ rejected the cloud session"):
+                if self.runtime.request_session_refresh():
+                    message += " A new login is scheduled. Test video again after the refresh."
+                else:
+                    message += " Automatic login refresh is rate-limited to five minutes."
+            return {"ok": False, "message": message}
         except (OSError, URLError):
             return {"ok": False, "message": "No video data arrived within 15 seconds. Check the camera and its EZVIZ cloud connection, then try again."}
 
