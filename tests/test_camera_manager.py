@@ -197,6 +197,30 @@ class ProxyErrorClassificationTests(unittest.TestCase):
         self.assertIn("DEVICE_OFFLINE", result)
         self.assertNotIn("private", result)
 
+    def test_ffmpeg_failures_return_specific_safe_codes(self):
+        examples = (
+            ("FFmpeg exited with status 1: Invalid data found when processing input", "FFMPEG_BAD_INPUT"),
+            ("FFmpeg exited with status 1: Output file #0 does not contain any stream", "FFMPEG_NO_VIDEO"),
+            ("FFmpeg exited with status 1: dimensions not set", "FFMPEG_VIDEO_HEADER"),
+            ("FFmpeg exited with status 1: Non-monotonous DTS in output stream", "FFMPEG_TIMESTAMPS"),
+            ("FFmpeg exited with status 1: invalid NAL unit", "FFMPEG_BITSTREAM"),
+            ("FFmpeg exited with status 1: Broken pipe", "FFMPEG_PIPE"),
+            ("Could not launch FFmpeg at '/usr/bin/ffmpeg'", "FFMPEG_MISSING"),
+            ("FFmpeg input writer did not stop after cancellation", "FFMPEG_STALLED"),
+            ("FFmpeg exited with status 1: uncommon decoder problem", "FFMPEG_EXIT"),
+        )
+        for upstream, expected in examples:
+            with self.subTest(expected=expected):
+                payload = (
+                    "<p>Message: " + upstream +
+                    " https://private.example/video?token=SECRET&amp;serial=HUB001-CAM001</p>"
+                ).encode()
+                result = explain_proxy_error(502, payload)
+                self.assertIn(f"[{expected}]", result)
+                self.assertNotIn("SECRET", result)
+                self.assertNotIn("HUB001-CAM001", result)
+                self.assertNotIn("private.example", result)
+
     def test_unknown_error_does_not_leak_tokens_urls_or_usernames(self):
         payload = (
             b"<p>Message: unexpected response https://private.example/"
