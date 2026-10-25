@@ -47,6 +47,8 @@ def explain_proxy_error(status: int, payload: bytes) -> str:
         return "HTTP 502: EZVIZ rejected the cloud session. Check the EZVIZ account and use Sign in again."
     if "vtdu token" in reason:
         return "HTTP 502: EZVIZ could not obtain its cloud video token (VTDU). Check the account and cloud service."
+    if any(term in reason for term in ("device offline", "camera offline", "hub offline", "base station offline", "device is offline")):
+        return "HTTP 502 [DEVICE_OFFLINE]: EZVIZ reports the camera or W2H base station offline. Restore its Ethernet/Wi-Fi connection and confirm it is online in the EZVIZ app."
     if "vtm resource" in reason or "resource metadata" in reason:
         return "HTTP 502: EZVIZ did not provide a video resource for this camera. Check whether the camera is awake and available for live view."
     if any(term in reason for term in ("vtm server", "vtm endpoint", "vtm port", "vtm negotiation")):
@@ -130,7 +132,9 @@ class CameraService:
 
         request = Request(f"http://127.0.0.1:{camera.port}/{camera.serial}.ts")
         try:
-            with build_opener(NoRedirect).open(request, timeout=15) as response:
+            # A sleeping BC1 can take longer to wake after a W2H/network outage.
+            # Do not run continuous background probes against battery cameras.
+            with build_opener(NoRedirect).open(request, timeout=35) as response:
                 packet = response.read(188)
                 if response.status == 200 and len(packet) == 188 and packet[0] == 0x47:
                     return {"ok": True, "message": "Video transport data received. Open the go2rtc player to check the picture."}
@@ -153,7 +157,17 @@ class CameraService:
                     message += " Automatic login refresh is rate-limited to five minutes."
             return {"ok": False, "message": message}
         except (OSError, URLError):
-            return {"ok": False, "message": "No video data arrived within 15 seconds. Check the camera and its EZVIZ cloud connection, then try again."}
+            return {"ok": False, "message": "No video data arrived within 35 seconds. Check that the W2H base station is online in the EZVIZ app and its network cable is connected. Wake the camera in the app; when connectivity returns, use Restart proxy and test again."}
+
+    def restart(self, port: int) -> dict[str, object]:
+        """One-camera manual proxy recovery; never reset EZVIZ credentials."""
+        with self.client.lock:
+            cameras = parse_cameras(self.client.raw_options())
+        if not any(camera.port == port for camera in cameras):
+            raise ValueError("Camera not found. Refresh this page.")
+        if self.runtime.restart_camera(port):
+            return {"ok": True, "message": "Local proxy restart requested for this camera only. Leave the W2H connected; wait briefly and run Test video again. The EZVIZ token and other camera are unchanged."}
+        return {"ok": False, "message": "The proxy has not started or was restarted in the last minute. Check the W2H connection and app log before trying again."}
 
     def test_audio(self, port: int) -> dict[str, object]:
         with self.client.lock:
@@ -263,13 +277,15 @@ class CameraHandler(BaseHTTPRequestHandler):
             self.respond(400, {"error": "Invalid form data."})
             return
         path = urlsplit(self.path).path
-        match = re.fullmatch(r"/api/cameras/(\d+)(/test|/test-audio)?", path)
+        match = re.fullmatch(r"/api/cameras/(\d+)(/test|/test-audio|/restart)?", path)
         try:
             if operation == "add" and path == "/api/cameras":
                 self.server.service.change("add", payload)
             elif match and operation == "add" and match.group(2):
-                test = self.server.service.test_audio if match.group(2) == "/test-audio" else self.server.service.test
-                self.respond(200, test(int(match.group(1))))
+                action = {"/test": self.server.service.test,
+                          "/test-audio": self.server.service.test_audio,
+                          "/restart": self.server.service.restart}[match.group(2)]
+                self.respond(200, action(int(match.group(1))))
                 return
             elif match and not match.group(2) and operation in ("edit", "remove"):
                 self.server.service.change(operation, payload, int(match.group(1)))

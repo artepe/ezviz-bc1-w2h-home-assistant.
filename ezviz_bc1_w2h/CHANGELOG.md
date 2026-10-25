@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.6 - Manual recovery from W2H / BC1 connectivity outages
+
+- Extend the user-initiated Test video network timeout from 15 to 35 seconds to allow sleeping BC1 cameras to wake after the base station reconnects.
+- Add a one-camera Restart proxy action in the ingress UI, rate-limited to once a minute per camera. It restarts the selected local streaming subprocess without erasing EZVIZ sessions or changing another camera.
+- Provide a separate safe DEVICE_OFFLINE diagnosis when the cloud explicitly reports an offline hub/camera, and actionable W2H cable/connectivity guidance for test timeouts.
+- Keep automatic repeated cloud stream probing disabled to avoid draining battery cameras or creating a request storm. Physical hub connectivity must be restored before local software recovery can work.
+- Add isolated worker restart, ingress security, and offline-hub classification regression tests.
+
 ## 0.2.5 - Distinguish cloud media failure causes
 
 - Improve Camera manager Test video HTTP 502 reporting: identify encrypted VTM stream packets, RTP codec detection, missing video frames/routes, FFmpeg remux failures, MPEG transport and decryption issues separately.

@@ -1,5 +1,17 @@
 # Troubleshooting / Vianhaku
 
+## HTTP timeout after disconnecting the W2H Ethernet cable (0.2.6)
+
+The BC1 cameras use the W2H base station and EZVIZ cloud. Removing the W2H Ethernet cable takes the hub offline unless a working alternative network connection is configured. Restarting the Home Assistant app cannot bring an offline hub back onto the network.
+
+1. Reconnect the W2H Ethernet cable to a working router/switch and check the W2H is **online** and both BC1 cameras show live view in the EZVIZ mobile app. If Wi-Fi is used instead of Ethernet, check the hub's actual wireless connection in the app/router. Do not assume Wi-Fi failover is configured.
+2. Update the Home Assistant EZVIZ BC1 / W2H Cloud Proxy app to 0.2.6 and restart it. Open its **Open Web UI** page.
+3. Run **Test video** for each configured BC1. The test allows up to 35 seconds for a sleeping camera after a hub outage. **Proxy ready** only means the local port is listening, not that the EZVIZ cloud supplied video.
+4. If W2H is back online but no video arrives, click **Restart proxy** for the affected camera only, wait for it to restart, and run **Test video** again. The action is limited to once per minute; it does not delete session tokens or restart the other camera.
+5. If Test video reports an expired session, the app's existing five-minute session refresh logic may sign in again. For persistent authentication errors inspect account settings. If Test video still fails with HTTP 502 codes VTM_ENCRYPTED, RTP_CODEC or RTP_INCOMPLETE, restarting the hub or local app is not proof of a software-media fix: record the exact diagnostic code for further investigation.
+6. When Test video returns MPEG-TS, check the go2rtc video-only streams at ports 8558 and 8559, then the corresponding Lovelace cards. Avoid continual tests on battery cameras.
+
+
 **2026-10-11 update:** Complete Raspberry Pi 5 add-on → go2rtc → Home Assistant Lovelace video playback is now verified working. See the [test report](VERIFIED_PI5_2026-10-11.md). The MacBook instructions are preserved as an optional fallback.
 
 ## Camera appears in `devices status`, but video does not start

@@ -229,6 +229,30 @@ class Runtime:
         self.login_retry_at = 0.0
         self.refresh_pending = False
         self.last_refresh_requested = float("-inf")
+        self.last_proxy_restart: dict[int, float] = {}
+
+    def restart_camera(self, port: int) -> bool:
+        """Restart one stuck local proxy after connectivity returns.
+
+        Explicitly user-initiated: probing every sleeping battery camera in the
+        background would consume power and can hammer the EZVIZ cloud. Do not
+        delete tokens or affect other camera processes. Limit to one retry per
+        camera per minute to avoid concurrent or repeated stream restarts.
+        """
+        now = time.monotonic()
+        with self.lock:
+            worker = next((entry for entry in WORKERS if entry.port == port), None)
+            if worker is None:
+                return False
+            if now - self.last_proxy_restart.get(port, float("-inf")) < 60:
+                return False
+            self.last_proxy_restart[port] = now
+            if worker.process is not None:
+                shutdown_workers([worker])
+            worker.retry_at = 0.0
+            self.reload.set()
+            log(f"Camera {worker.index}: local proxy restart requested after connectivity loss.")
+            return True
 
     def request_session_refresh(self) -> bool:
         """Coalesce stale-session recovery and rate-limit it to once per five minutes.

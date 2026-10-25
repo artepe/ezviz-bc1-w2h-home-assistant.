@@ -3,7 +3,7 @@ const byId = id => document.getElementById(id);
 const csrf = document.querySelector('meta[name="csrf-token"]').content;
 const dialog = byId("camera-dialog");
 let state = {cameras: []}, editing = null, removing = null, noticeUntil = 0;
-const expanded = new Set(), expandedAudio = new Set(), results = new Map(), testing = new Set();
+const expanded = new Set(), expandedAudio = new Set(), results = new Map(), testing = new Set(), restarting = new Set();
 
 async function request(path, method = "GET", payload = null) {
   const response = await fetch(new URL(path, document.baseURI), {
@@ -80,9 +80,11 @@ function render() {
     const actions = element("div", "card-actions");
     const test = button(testing.has(camera.port) ? "Checking..." : "Test video", "button secondary test-button", () => testCamera(camera));
     const audioTest = button("Test audio", "button secondary", () => testCamera(camera, true));
-    test.disabled = testing.has(camera.port);
-    audioTest.disabled = testing.has(camera.port);
-    actions.append(test, audioTest, button("Edit", "button quiet", () => openCamera(camera)), button("Remove", "button quiet", () => openRemove(camera)));
+    const restart = button(restarting.has(camera.port) ? "Restarting..." : "Restart proxy", "button secondary", () => restartCamera(camera));
+    test.disabled = testing.has(camera.port) || restarting.has(camera.port);
+    audioTest.disabled = testing.has(camera.port) || restarting.has(camera.port);
+    restart.disabled = testing.has(camera.port) || restarting.has(camera.port);
+    actions.append(test, audioTest, restart, button("Edit", "button quiet", () => openCamera(camera)), button("Remove", "button quiet", () => openRemove(camera)));
     card.append(head, meta, actions);
     if (results.has(camera.port)) {
       const result = results.get(camera.port);
@@ -165,6 +167,13 @@ async function removeCamera(event) {
     await refresh(); window.setTimeout(refresh, 1200);
   } catch (error) { byId("remove-error").textContent = error.message; byId("remove-error").hidden = false; }
   finally { confirm.disabled = false; }
+}
+
+async function restartCamera(camera) {
+  restarting.add(camera.port); render();
+  try { results.set(camera.port, await request(`api/cameras/${camera.port}/restart`, "POST", {})); }
+  catch (error) { results.set(camera.port, {ok: false, message: error.message}); }
+  finally { restarting.delete(camera.port); render(); }
 }
 
 async function testCamera(camera, audio = false) {

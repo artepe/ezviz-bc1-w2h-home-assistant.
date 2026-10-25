@@ -192,6 +192,11 @@ class ProxyErrorClassificationTests(unittest.TestCase):
                 self.assertNotIn("SECRET_VALUE", result)
                 self.assertNotIn("HUB001-CAM001", result)
 
+    def test_base_station_offline_response_is_not_mistaken_for_codec_failure(self):
+        result = explain_proxy_error(502, b"<p>Message: W2H base station offline; secret=private</p>")
+        self.assertIn("DEVICE_OFFLINE", result)
+        self.assertNotIn("private", result)
+
     def test_unknown_error_does_not_leak_tokens_urls_or_usernames(self):
         payload = (
             b"<p>Message: unexpected response https://private.example/"
@@ -338,6 +343,19 @@ class IngressTests(SupervisorFixture):
         self.assertEqual(status, 200)
         self.assertNotIn("password", state)
         self.assertEqual(headers["Cache-Control"], "no-store")
+
+    def test_restart_endpoint_restarts_only_requested_camera_without_saving_settings(self):
+        self.runtime.restart_camera.return_value = True
+        status, body, _ = self.call("POST", "/api/cameras/8558/restart", {})
+        self.assertEqual(status, 200)
+        self.assertTrue(json.loads(body)["ok"])
+        self.runtime.restart_camera.assert_called_once_with(8558)
+        self.assertEqual(self.supervisor.options["camera_serial"], "HUB001-CAM001")
+        status, _, _ = self.call("POST", "/api/cameras/8558/restart", {}, csrf=False)
+        self.assertEqual(status, 403)
+        self.runtime.restart_camera.assert_called_once()
+        status, _, _ = self.call("POST", "/api/cameras/8559/restart", {})
+        self.assertEqual(status, 400)
 
     def test_local_or_lan_clients_cannot_bypass_ingress_with_headers(self):
         self.ingress.allowed_hosts = frozenset({"172.30.32.2"})
