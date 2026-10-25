@@ -182,6 +182,31 @@ class LifecycleTests(unittest.TestCase):
         self.assertIn("No video-channel packets observed after handshake", no_packet["message"])
         self.assertNotIn("control packets, but no video-channel packets", no_packet["message"])
 
+    def test_proxy_timeout_is_passed_to_vtm_socket(self):
+        w = worker()
+        with patch.object(runner.subprocess, "Popen", return_value=Mock()):
+            runner.start_worker(w, retry=10, now=0.0)
+        # Worker command options are separate from go2rtc / FFmpeg options.
+        with patch.object(runner.subprocess, "Popen", return_value=Mock()) as popen:
+            runner.start_worker(w, retry=10, now=1.0)
+        args = popen.call_args.args[0]
+        self.assertEqual(args[args.index("--timeout") + 1], "20")
+
+    def test_media_failure_exposes_only_safe_handshake_counts(self):
+        payload = json.dumps({
+            "ok": False, "stage": "MEDIA_READ", "code": "VTM_IDLE_TIMEOUT",
+            "handshake_result": 0, "has_stream_session": True,
+            "media_packet_count": 0,
+            "session_id": "DONT_LOG_ME",
+        }).encode()
+        result = runner.summarize_cloud_trace(payload)
+        self.assertFalse(result["ok"])
+        self.assertIn("VTM_IDLE_TIMEOUT", result["message"])
+        self.assertIn("handshake result=0", result["message"])
+        self.assertIn("Session reported=yes", result["message"])
+        self.assertIn("packets=0", result["message"])
+        self.assertNotIn("DONT_LOG_ME", result["message"])
+
     def test_safe_phase_status_does_not_reflect_untrusted_fields(self):
         data = {
             "ok": False,
