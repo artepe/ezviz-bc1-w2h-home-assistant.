@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.7 - Precise, privacy-safe FFmpeg failure codes
+
+- Fix overly generic `HTTP 502 [FFMPEG_REMUX]` Test video error classification. The upstream library returns a bounded FFmpeg stderr tail, but previous versions hid all actionable details under one label.
+- Detect missing FFmpeg, missing video stream, invalid input, missing codec/frame headers, invalid timestamps, broken video bitstream, broken pipes, stalled input writers and unknown FFmpeg process exits.
+- Show only allowlisted constant messages; never display FFmpeg stderr, signed URLs, raw HTTP payloads or private camera/account details.
+- Preserve the known-working pinned pyEzvizApi version, proxy topology, EZVIZ login and video-only go2rtc sources while gathering a real cause from hardware.
+- Add privacy-safe regression coverage for each new FFmpeg diagnosis.
+
+
 ## 0.2.6 - Manual recovery from W2H / BC1 connectivity outages
 
 - Extend the user-initiated Test video network timeout from 15 to 35 seconds to allow sleeping BC1 cameras to wake after the base station reconnects.
