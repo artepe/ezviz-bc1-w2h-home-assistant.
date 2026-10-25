@@ -42,33 +42,57 @@ WORKERS: list[ProxyWorker] = []
 
 
 def summarize_cloud_trace(output: bytes) -> dict[str, object]:
-    """Aggregate allowlisted VTM transport metadata; no packet bodies or tokens."""
+    """Aggregate only allowlisted metadata; no packet bodies, tokens or URLs."""
     try:
         events = json.loads(output)
     except (ValueError, UnicodeDecodeError):
         return {"ok": False, "message": "Cloud trace output was not valid JSON. No private output was shown."}
     if not isinstance(events, list) or len(events) > 32:
         return {"ok": False, "message": "Cloud trace returned an unexpected number of events."}
-    counts = {key: 0 for key in ("RTP", "MPEG_PS", "MPEG_TS", "UNKNOWN")}
+
+    counts = {kind: 0 for kind in ("RTP", "MPEG_PS", "MPEG_TS", "UNKNOWN")}
     encrypted = 0
     streams = 0
+    controls = 0
+    handshake = None
     for event in events:
         if not isinstance(event, dict):
             return {"ok": False, "message": "Cloud trace returned invalid packet metadata."}
-        if event.get("channel_name") != "STREAM":
+        channel = event.get("channel_name")
+        if channel == "HANDSHAKE":
+            handshake = event
+            continue
+        if channel not in ("STREAM", "ENCRYPTED_STREAM"):
+            controls += 1
             continue
         streams += 1
         transport = event.get("transport")
         counts[transport if isinstance(transport, str) and transport in counts else "UNKNOWN"] += 1
-        if event.get("encrypted") is True:
+        if channel == "ENCRYPTED_STREAM" or event.get("encrypted") is True:
             encrypted += 1
+
+    if isinstance(handshake, dict):
+        result = handshake.get("result_code")
+        status = str(result) if type(result) is int and -32768 <= result <= 32767 else "unknown"
+        has_session = "yes" if handshake.get("has_stream_session") is True else "no"
+        handshake_label = f"VTM handshake result={status}, session reported={has_session}. "
+    else:
+        handshake_label = "VTM handshake status not recorded. "
+
     if not streams:
-        return {"ok": False, "message": f"Cloud trace: {len(events)} control packets, but no video-channel packets. The EZVIZ VTM stream did not deliver video data during the bounded probe."}
+        return {"ok": False, "message": (
+            f"{handshake_label}No video-channel packets observed after handshake "
+            f"during this bounded 25-second first-packet probe; "
+            f"other control packets={controls}. This does not establish that the "
+            "camera is offline or that the cloud never streams. "
+            "Close other live viewers before repeating."
+        )}
     return {"ok": True, "message": (
-        f"Cloud media diagnosis: {streams} video-channel packets; "
+        f"{handshake_label}Cloud media diagnosis: {streams} video-channel packets; "
         f"RTP={counts['RTP']}, MPEG_PS={counts['MPEG_PS']}, "
         f"MPEG_TS={counts['MPEG_TS']}, UNKNOWN={counts['UNKNOWN']}; "
-        f"encrypted={encrypted}. These are source packet types, not decoded video frames. "
+        f"encrypted={encrypted}; other control packets={controls}. "
+        "These are source transport types, not decoded video frames. "
         "No video bytes, URLs, credentials or tokens were saved or returned."
     )}
 
@@ -285,14 +309,14 @@ class Runtime:
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL,
-                timeout=45,
+                timeout=70,
                 check=False,
             )
             if completed.returncode != 0:
                 return {"ok": False, "message": "Cloud trace failed before usable VTM packet metadata was returned. Check the EZVIZ cloud connection."}
             return summarize_cloud_trace(completed.stdout)
         except subprocess.TimeoutExpired:
-            return {"ok": False, "message": "Cloud trace timed out after 45 seconds. The camera may be asleep or the cloud session is not delivering packets."}
+            return {"ok": False, "message": "Cloud trace reached its 70-second safety deadline. The camera or EZVIZ cloud may be slow or inaccessible."}
         except OSError:
             return {"ok": False, "message": "Could not start the private cloud trace command in the EZVIZ app container."}
         finally:
