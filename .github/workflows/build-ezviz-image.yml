@@ -59,7 +59,7 @@ jobs:
           docker run --rm --platform linux/arm64 --entrypoint /usr/bin/ffmpeg "$IMAGE:$VERSION" -version
           docker run --rm --platform linux/arm64 --entrypoint /usr/bin/ffprobe "$IMAGE:$VERSION" -version
           docker run --rm --platform linux/arm64 --entrypoint /opt/ezviz-venv/bin/python "$IMAGE:$VERSION" -c 'import sys; sys.path.insert(0, "/app"); import camera_config, supervisor_client, web, runner; from pathlib import Path; assert (Path("/app/static/index.html")).is_file()'
-          docker run --rm --platform linux/arm64 --entrypoint /opt/ezviz-venv/bin/python "$IMAGE:$VERSION" -c 'import pyezvizapi.cloud_stream as cloud; from pyezvizapi.remux import ffmpeg_mpegts_command; assert callable(cloud.copy_cloud_stream_packets_to_mpegts); assert ffmpeg_mpegts_command("ffmpeg", input_format="h264")[-3:] == ["mpegts", "pipe:1"]'
+          docker run --rm --platform linux/arm64 --entrypoint /opt/ezviz-venv/bin/python "$IMAGE:$VERSION" -c 'import pyezvizapi.cloud_stream as cloud; from pyezvizapi.remux import ffmpeg_mpegts_command; assert callable(cloud.copy_cloud_stream_packets_to_mpegts); assert ffmpeg_mpegts_command("ffmpeg", input_format="h264")[-2:] == ["mpegts", "pipe:1"]'
           docker run --rm --platform linux/arm64 --volume "$PWD/tests:/tests:ro" --env PYTHONPATH=/app --entrypoint /opt/ezviz-venv/bin/python "$IMAGE:$VERSION" -m unittest discover -s /tests -p test_audio_probe.py -v
         env:
           IMAGE: ${{ steps.release.outputs.image }}
