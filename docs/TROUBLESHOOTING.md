@@ -1,5 +1,22 @@
 # Troubleshooting / Vianhaku
 
+## EZVIZ phone app live video works, but Test video returns FFmpeg HTTP 502
+
+When W2H and both cameras stream normally in the EZVIZ mobile app, do not remove/re-add the cameras or keep refreshing account credentials. The app proxy has already reached the video processing stage, and the video conversion failure needs a more specific cause. Updating go2rtc sources does not repair a failing upstream MPEG-TS URL.
+
+Version 0.2.7 examines FFmpeg failure details **only within the trusted add-on server**, and returns fixed, privacy-safe diagnostic codes from **Test video**:
+
+- `FFMPEG_BAD_INPUT`: the data stream couldn't be parsed as expected (incomplete/unsupported input possible)
+- `FFMPEG_NO_VIDEO`: there was no usable video stream to remux
+- `FFMPEG_VIDEO_HEADER`: initial video headers or dimensions are absent
+- `FFMPEG_TIMESTAMPS`: cloud media timing may be incompatible with remux
+- `FFMPEG_BITSTREAM`: malformed video frame data
+- `FFMPEG_PIPE`: FFmpeg lost a pipe (e.g. a media client disconnected)
+- `FFMPEG_MISSING`, `FFMPEG_STALLED`, `FFMPEG_EXIT`, or generic `FFMPEG_REMUX`: other specific or unrecognized cases
+
+First update the EZVIZ app after the validated ARM64 image is published, then open **EZVIZ Cameras → Test video** for one camera, and report only the diagnostic code. Keep the raw stderr private; it can include session URLs. The pinned pyEzvizApi version is intentionally unchanged until the fault is classified; later cloud RTP fixes might be useful only if they match the actual cause.
+
+
 ## HTTP timeout after disconnecting the W2H Ethernet cable (0.2.6)
 
 The BC1 cameras use the W2H base station and EZVIZ cloud. Removing the W2H Ethernet cable takes the hub offline unless a working alternative network connection is configured. Restarting the Home Assistant app cannot bring an offline hub back onto the network.
