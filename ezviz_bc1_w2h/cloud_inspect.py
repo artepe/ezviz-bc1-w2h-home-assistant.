@@ -20,7 +20,7 @@ STAGES = frozenset({"TOKEN_READ", "CLIENT_INIT", "CLOUD_LOOKUP", "VTM_HANDSHAKE"
 CODES = frozenset({
     "SESSION_MISSING", "TOKEN_MISSING", "TOKEN_UNREADABLE", "TOKEN_INVALID",
     "TIMEOUT", "CONNECTION_FAILED", "CLOUD_HTTP_ERROR", "CLOUD_AUTH_REJECTED",
-    "VTM_UNREACHABLE", "UPSTREAM_DEVICE_ERROR", "UPSTREAM_MEDIA_ERROR",
+    "VTM_UNREACHABLE", "VTM_IDLE_TIMEOUT", "UPSTREAM_DEVICE_ERROR", "UPSTREAM_MEDIA_ERROR",
     "UPSTREAM_PARSE_ERROR", "UNEXPECTED_ERROR",
 })
 
@@ -51,6 +51,11 @@ def classify_error(exc: Exception) -> tuple[str, int | None]:
     ):
         return "CONNECTION_FAILED", None
     if kind in ("DeviceException", "EzvizDeviceException"):
+        # This exact static upstream phrase is raised by VtmStreamClient's
+        # _recv_exact socket read-inactivity deadline. Examine only a known
+        # literal; never return arbitrary exception content.
+        if "timed out waiting for VTM stream data" in str(exc):
+            return "VTM_IDLE_TIMEOUT", None
         return "VTM_UNREACHABLE", None
     if kind in ("PyEzvizError", "EzvizApiError"):
         return "UPSTREAM_DEVICE_ERROR", None
@@ -74,7 +79,18 @@ def report_error(stage: str, exc: Exception, events: list[dict] | None = None) -
     # Never add raw exceptions, response bodies, filenames, URLs, session IDs,
     # media bytes, access keys or token values.
     if events:
-        result["events"] = events[:25]
+        # Keep only safe handshake values on failure. Never echo arbitrary
+        # packet records, URLs, session identifiers or private raw contents.
+        handshake = next((e for e in events if isinstance(e, dict) and e.get("channel_name") == "HANDSHAKE"), None)
+        if handshake:
+            number = handshake.get("result_code")
+            if type(number) is int and -32768 <= number <= 32767:
+                result["handshake_result"] = number
+            result["has_stream_session"] = handshake.get("has_stream_session") is True
+        result["media_packet_count"] = sum(
+            1 for e in events
+            if isinstance(e, dict) and e.get("channel_name") in ("STREAM", "ENCRYPTED_STREAM")
+        )
     return result
 
 
@@ -94,7 +110,7 @@ def collect_packet_metadata(client, serial: str, *, max_packets: int = 24) -> li
 
     # The wrapper reports this phase separately from TCP/VTM negotiation.
     try:
-        stream = open_cloud_stream(client, serial, timeout=10.0)
+        stream = open_cloud_stream(client, serial, timeout=26.0)
     except Exception as exc:
         raise CloudPhaseError("CLOUD_LOOKUP", exc) from None
     try:
@@ -122,7 +138,7 @@ def collect_packet_metadata(client, serial: str, *, max_packets: int = 24) -> li
                 duration_seconds=28.0,
                 duration_from_start=True,
                 first_packet_timeout=25.0,
-                stream_packet_timeout_seconds=20.0,
+                stream_packet_timeout_seconds=26.0,
                 include_control=True,
             )):
                 # summarize_vtm_packet deliberately omits packet.body, stream URLs,

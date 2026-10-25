@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.12 - Fix premature VTM socket media timeout and retain safe negotiation result
+
+- Target the observed `MEDIA_READ / VTM_UNREACHABLE`: upstream VTM TCP reader uses `stream.timeout` as **socket read inactivity bound**. Its default 10s raised `DeviceException` even though Analyze cloud permitted a longer first-packet window.
+- Increase the camera proxy VTM socket timeout from 10s to 20s and the bounded Analyze cloud reader timeout from 10s to 26s. This may allow slow BC1 battery-camera wakeups; it is **not yet verified** on this user's hardware and does not change go2rtc's own worker timeouts.
+- Report a fixed `VTM_IDLE_TIMEOUT` code for the upstream reader's known inactivity error. Retain only integer VTM handshake result, session-present boolean and bounded media packet count on failure, so a VTM rejection can be distinguished from media inactivity without disclosing session IDs, cloud URLs or payloads.
+- Add offline regression checks for timeouts, no secret leakage and proxy worker arguments.
+- Preserve current account credentials, camera ports, saved camera list, pinned pyEzvizApi dependency and go2rtc configurations.
+
+
 ## 0.2.11 - Stage-specific, token-safe EZVIZ cloud diagnosis
 
 - Fix the generic `Cloud trace failed before usable VTM packet metadata was returned` condition caused by the 0.2.10 cloud-inspection subprocess hiding every Python exception behind exit code 1.
