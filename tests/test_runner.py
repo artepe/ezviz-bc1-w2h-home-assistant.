@@ -194,7 +194,7 @@ class LifecycleTests(unittest.TestCase):
         self.assertNotIn("secret", result["message"])
         no_media = runner.summarize_cloud_trace(b'[{"channel_name":"CONTROL"}]')
         self.assertFalse(no_media["ok"])
-        self.assertIn("no video-channel packets", no_media["message"])
+        self.assertIn("no video-channel packets", no_media["message"].lower())
         self.assertFalse(runner.summarize_cloud_trace(b'not-json')["ok"])
 
     def test_trace_invokes_only_selected_camera_without_showing_upstream_output(self):
