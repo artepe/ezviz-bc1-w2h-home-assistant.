@@ -2,8 +2,8 @@
 
 ## 0.2.9 - Bounded source-protocol diagnosis (no video capture)
 
-- Add a manual **Analyze cloud** action for saved BC1 cameras. It runs the installed pyEzvizApi `stream trace` inside the EZVIZ app container and reports only counts of RTP, MPEG-PS, MPEG-TS, unknown and encrypted video-channel packets.
-- Do not collect/store video bytes, credentials, cloud URLs, FFmpeg stderr or other packet contents. Ignore any unknown fields in the trace JSON. Suppress raw subprocess errors, bound tests to 24 trace packets and 45 seconds, serialize traces and rate-limit repeated requests per camera to 90 seconds.
+- Add a manual **Analyze cloud** action for saved BC1 cameras. It runs an isolated Python VTM inspection with the installed pyEzvizApi inside the EZVIZ app container; unlike the handshake-only CLI trace, this explicitly starts the live stream and reports only counts of RTP, MPEG-PS, MPEG-TS, unknown and encrypted video-channel packets.
+- Do not collect/store video bytes, credentials, cloud URLs, FFmpeg stderr or other packet contents. Ignore any unknown fields in the trace JSON. Suppress raw subprocess errors, bound tests to 24 packets, 12 seconds of live capture and a 45-second subprocess ceiling, serialize traces and rate-limit repeated requests per camera to 90 seconds.
 - CSRF-protect the ingress endpoint and restrict it to saved camera ports; only configured private token file is used. Add unit and endpoint tests.
 - Existing 0.2.8 pinned pyEzvizApi, proxy behavior and all go2rtc stream definitions are unchanged. This is a source-protocol diagnosis, not a verified decoding fix.
 
