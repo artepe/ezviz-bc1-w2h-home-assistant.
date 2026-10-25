@@ -170,7 +170,7 @@ def main() -> int:
     # The command prints exactly one structured JSON result. A diagnostic
     # failure is not a subprocess crash; all raw exceptions stay private.
     result = execute(Path(args.token_file), args.serial)
-    sys.stdout.write(json.dumps(result, separators=(",", ":")) + "\\n")
+    sys.stdout.write(json.dumps(result, separators=(",", ":")) + "\n")
     return 0
 
 
