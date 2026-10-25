@@ -40,7 +40,7 @@ RUN set -eu; \
     fi; \
     python3 -m venv /opt/ezviz-venv; \
     /opt/ezviz-venv/bin/pip install --no-cache-dir \
-      'git+https://github.com/RenierM26/pyEzvizApi.git@6df75d95a2ee6a68fb71446ee74a55572e2014ea'; \
+      'git+https://github.com/RenierM26/pyEzvizApi.git@a38ba757a3686cb412cc5029225e2608cdbccc4b'; \
     apk del git
 
 COPY run.sh /run.sh
