@@ -23,6 +23,9 @@ TOKEN = Path("/data/ezviz_token.json")
 CLI = "/opt/ezviz-venv/bin/pyezvizapi"
 LISTEN_HOST = "127.0.0.1"
 LISTEN_PORT = 8558
+# pyEzvizApi uses this as its underlying VTM socket idle timeout as well as
+# negotiation timeout. A 10s default aborts slow battery-camera wakeups.
+VTM_PROXY_TIMEOUT_SECONDS = 20
 STOPPING = False
 LOGIN_PROCESS: subprocess.Popen[bytes] | None = None
 
@@ -54,7 +57,7 @@ def summarize_cloud_trace(output: bytes) -> dict[str, object]:
         valid_codes = (
             "SESSION_MISSING", "TOKEN_MISSING", "TOKEN_UNREADABLE", "TOKEN_INVALID",
             "TIMEOUT", "CONNECTION_FAILED", "CLOUD_HTTP_ERROR", "CLOUD_AUTH_REJECTED",
-            "VTM_UNREACHABLE", "UPSTREAM_DEVICE_ERROR", "UPSTREAM_MEDIA_ERROR",
+            "VTM_UNREACHABLE", "VTM_IDLE_TIMEOUT", "UPSTREAM_DEVICE_ERROR", "UPSTREAM_MEDIA_ERROR",
             "UPSTREAM_PARSE_ERROR", "UNEXPECTED_ERROR",
         )
         stage = events.get("stage")
@@ -63,6 +66,17 @@ def summarize_cloud_trace(output: bytes) -> dict[str, object]:
             return {"ok": False, "message": "Cloud trace reported an unrecognized diagnostic status."}
         status = events.get("http_status")
         http = f" (HTTP {status})" if type(status) is int and 100 <= status <= 599 else ""
+        handshake_result = events.get("handshake_result")
+        handshake_session = events.get("has_stream_session")
+        handshake = ""
+        if stage == "MEDIA_READ":
+            if type(handshake_result) is int and -32768 <= handshake_result <= 32767:
+                handshake += f" VTM handshake result={handshake_result}."
+            if type(handshake_session) is bool:
+                handshake += f" Session reported={'yes' if handshake_session else 'no'}."
+            count = events.get("media_packet_count")
+            if type(count) is int and 0 <= count <= 24:
+                handshake += f" Received video-channel packets={count}."
         detail = ""
         if stage == "TOKEN_READ":
             detail = "Check the existing saved EZVIZ login session; do not post tokens."
@@ -72,9 +86,11 @@ def summarize_cloud_trace(output: bytes) -> dict[str, object]:
             detail = "Cloud video metadata/resource lookup failed before VTM TCP connection."
         elif stage == "VTM_HANDSHAKE":
             detail = "VTM TCP negotiation failed before a media session was established."
+        elif code == "VTM_IDLE_TIMEOUT":
+            detail = "The VTM socket did not receive a complete packet before its inactivity timeout."
         else:
             detail = "The VTM connection was established, but reading its packets failed."
-        return {"ok": False, "message": f"Cloud diagnosis: {stage} / {code}{http}. {detail}"}
+        return {"ok": False, "message": f"Cloud diagnosis: {stage} / {code}{http}.{handshake} {detail}"}
     if not isinstance(events, list) or len(events) > 32:
         return {"ok": False, "message": "Cloud trace returned an unexpected number of events."}
 
@@ -241,6 +257,7 @@ def start_worker(worker: ProxyWorker, retry: int, now: float) -> None:
         "--serial", worker.serial,
         "--listen-host", LISTEN_HOST,
         "--listen-port", str(worker.port),
+        "--timeout", str(VTM_PROXY_TIMEOUT_SECONDS),
     ]
     try:
         worker.process = subprocess.Popen(
