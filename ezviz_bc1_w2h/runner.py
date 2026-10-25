@@ -47,6 +47,34 @@ def summarize_cloud_trace(output: bytes) -> dict[str, object]:
         events = json.loads(output)
     except (ValueError, UnicodeDecodeError):
         return {"ok": False, "message": "Cloud trace output was not valid JSON. No private output was shown."}
+    if isinstance(events, dict):
+        # The child includes only fixed-schema phase and code metadata; always
+        # whitelist again at the browser boundary, treating child as untrusted.
+        valid_stages = ("TOKEN_READ", "CLIENT_INIT", "CLOUD_LOOKUP", "VTM_HANDSHAKE", "MEDIA_READ")
+        valid_codes = (
+            "SESSION_MISSING", "TOKEN_MISSING", "TOKEN_UNREADABLE", "TOKEN_INVALID",
+            "TIMEOUT", "CONNECTION_FAILED", "CLOUD_HTTP_ERROR", "CLOUD_AUTH_REJECTED",
+            "VTM_UNREACHABLE", "UPSTREAM_DEVICE_ERROR", "UPSTREAM_MEDIA_ERROR",
+            "UPSTREAM_PARSE_ERROR", "UNEXPECTED_ERROR",
+        )
+        stage = events.get("stage")
+        code = events.get("code")
+        if events.get("ok") is not False or stage not in valid_stages or code not in valid_codes:
+            return {"ok": False, "message": "Cloud trace reported an unrecognized diagnostic status."}
+        status = events.get("http_status")
+        http = f" (HTTP {status})" if type(status) is int and 100 <= status <= 599 else ""
+        detail = ""
+        if stage == "TOKEN_READ":
+            detail = "Check the existing saved EZVIZ login session; do not post tokens."
+        elif stage == "CLIENT_INIT":
+            detail = "The EZVIZ Python client could not initialize using the saved token."
+        elif stage == "CLOUD_LOOKUP":
+            detail = "Cloud video metadata/resource lookup failed before VTM TCP connection."
+        elif stage == "VTM_HANDSHAKE":
+            detail = "VTM TCP negotiation failed before a media session was established."
+        else:
+            detail = "The VTM connection was established, but reading its packets failed."
+        return {"ok": False, "message": f"Cloud diagnosis: {stage} / {code}{http}. {detail}"}
     if not isinstance(events, list) or len(events) > 32:
         return {"ok": False, "message": "Cloud trace returned an unexpected number of events."}
 

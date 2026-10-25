@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.11 - Stage-specific, token-safe EZVIZ cloud diagnosis
+
+- Fix the generic `Cloud trace failed before usable VTM packet metadata was returned` condition caused by the 0.2.10 cloud-inspection subprocess hiding every Python exception behind exit code 1.
+- A manually triggered cloud inspection now reports **TOKEN_READ**, **CLIENT_INIT**, **CLOUD_LOOKUP**, **VTM_HANDSHAKE** or **MEDIA_READ**, with a fixed, privacy-safe error category and validated HTTP status when available.
+- Only structured, allowlisted fields reach the authenticated UI. No cloud URLs, access keys, session identifiers, packet bodies, error messages, paths or FFmpeg stderr are exposed.
+- Preserve the same configured cameras, tokens, ports, go2rtc URLs, 0.2.8 pyEzvizApi version and proxy behavior; this improves diagnostics and does not claim a verified hardware video fix.
+- Add regression tests for each bootstrap stage, error sanitization, unknown fields and failing saved sessions.
+
+
 ## 0.2.10 - Correct empty VTM trace interpretation after BC1 startup
 
 - Correct the misleading 0.2.9 `Cloud trace: 0 control packets` result. `stream.start()` consumes the stream-info handshake before packet iteration, so an empty post-handshake probe does not mean the cloud never sent any control frames.
