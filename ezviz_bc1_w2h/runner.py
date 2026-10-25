@@ -41,6 +41,38 @@ class ProxyWorker:
 WORKERS: list[ProxyWorker] = []
 
 
+def summarize_cloud_trace(output: bytes) -> dict[str, object]:
+    """Aggregate allowlisted VTM transport metadata; no packet bodies or tokens."""
+    try:
+        events = json.loads(output)
+    except (ValueError, UnicodeDecodeError):
+        return {"ok": False, "message": "Cloud trace output was not valid JSON. No private output was shown."}
+    if not isinstance(events, list) or len(events) > 32:
+        return {"ok": False, "message": "Cloud trace returned an unexpected number of events."}
+    counts = {key: 0 for key in ("RTP", "MPEG_PS", "MPEG_TS", "UNKNOWN")}
+    encrypted = 0
+    streams = 0
+    for event in events:
+        if not isinstance(event, dict):
+            return {"ok": False, "message": "Cloud trace returned invalid packet metadata."}
+        if event.get("channel_name") != "STREAM":
+            continue
+        streams += 1
+        transport = event.get("transport")
+        counts[transport if isinstance(transport, str) and transport in counts else "UNKNOWN"] += 1
+        if event.get("encrypted") is True:
+            encrypted += 1
+    if not streams:
+        return {"ok": False, "message": f"Cloud trace: {len(events)} control packets, but no video-channel packets. The EZVIZ VTM stream did not deliver video data during the bounded probe."}
+    return {"ok": True, "message": (
+        f"Cloud media diagnosis: {streams} video-channel packets; "
+        f"RTP={counts['RTP']}, MPEG_PS={counts['MPEG_PS']}, "
+        f"MPEG_TS={counts['MPEG_TS']}, UNKNOWN={counts['UNKNOWN']}; "
+        f"encrypted={encrypted}. These are source packet types, not decoded video frames. "
+        "No video bytes, URLs, credentials or tokens were saved or returned."
+    )}
+
+
 def log(message: str) -> None:
     print(f"[BC1/W2H] {message}", flush=True)
 
@@ -230,6 +262,41 @@ class Runtime:
         self.refresh_pending = False
         self.last_refresh_requested = float("-inf")
         self.last_proxy_restart: dict[int, float] = {}
+        self.cloud_trace_lock = threading.Lock()
+        self.last_cloud_trace: dict[int, float] = {}
+
+    def trace_cloud(self, port: int) -> dict[str, object]:
+        """User-initiated, bounded upstream VTM metadata probe for one camera."""
+        now = time.monotonic()
+        with self.lock:
+            worker = next((w for w in WORKERS if w.port == port and w.process is not None and w.process.poll() is None), None)
+            if worker is None:
+                return {"ok": False, "message": "The selected camera proxy is not running. Check its app log."}
+            if now - self.last_cloud_trace.get(port, float("-inf")) < 90:
+                return {"ok": False, "message": "The cloud trace is limited to once per 90 seconds for each camera."}
+            if not self.cloud_trace_lock.acquire(blocking=False):
+                return {"ok": False, "message": "Another camera cloud trace is already in progress."}
+            self.last_cloud_trace[port] = now
+            serial, token = worker.serial, worker.token
+        try:
+            completed = subprocess.run(
+                [CLI, "--token-file", str(token), "stream", "trace",
+                 "--serial", serial, "--max-packets", "24", "--timeout", "8"],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                timeout=45,
+                check=False,
+            )
+            if completed.returncode != 0:
+                return {"ok": False, "message": "Cloud trace failed before usable VTM packet metadata was returned. Check the EZVIZ cloud connection."}
+            return summarize_cloud_trace(completed.stdout)
+        except subprocess.TimeoutExpired:
+            return {"ok": False, "message": "Cloud trace timed out after 45 seconds. The camera may be asleep or the cloud session is not delivering packets."}
+        except OSError:
+            return {"ok": False, "message": "Could not start the private cloud trace command in the EZVIZ app container."}
+        finally:
+            self.cloud_trace_lock.release()
 
     def restart_camera(self, port: int) -> bool:
         """Restart one stuck local proxy after connectivity returns.
