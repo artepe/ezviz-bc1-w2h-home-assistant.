@@ -13,6 +13,25 @@ from cloud_inspect import collect_packet_metadata, classify_error, execute, repo
 
 
 class CloudPacketProbeTests(unittest.TestCase):
+    def test_vtm_idle_timeout_is_classified_without_exposing_message(self):
+        class DeviceException(Exception):
+            pass
+        ex = DeviceException(
+            "Device offline or unreachable: timed out waiting for VTM stream data; "
+            "url=https://private.example/?token=SECRET"
+        )
+        result = report_error("MEDIA_READ", ex, [{
+            "channel_name": "HANDSHAKE", "result_code": 0,
+            "has_stream_session": True,
+            "streamssn": "PRIVATE_SECRET_SESSION",
+        }])
+        self.assertEqual(result["code"], "VTM_IDLE_TIMEOUT")
+        self.assertEqual(result["handshake_result"], 0)
+        self.assertTrue(result["has_stream_session"])
+        self.assertEqual(result["media_packet_count"], 0)
+        self.assertNotIn("SECRET", repr(result))
+        self.assertNotIn("private.example", repr(result))
+
     def test_phase_code_is_safe_even_if_exception_contains_cloud_url(self):
         error = RuntimeError("https://secret.ezviz.invalid/path?token=VERY_PRIVATE")
         result = report_error("VTM_HANDSHAKE", error)
@@ -101,6 +120,9 @@ class CloudPacketProbeTests(unittest.TestCase):
         kwargs = stream.iter_packets.call_args.kwargs
         self.assertEqual(kwargs["first_packet_timeout"], 25.0)
         self.assertEqual(kwargs["duration_seconds"], 28.0)
+        self.assertEqual(kwargs["stream_packet_timeout_seconds"], 26.0)
+        args, kwargs_open = cloud.open_cloud_stream.call_args
+        self.assertEqual(kwargs_open["timeout"], 26.0)
 
     def test_handshake_does_not_export_session_string(self):
         stream = Mock()
