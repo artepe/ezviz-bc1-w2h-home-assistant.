@@ -182,6 +182,23 @@ class LifecycleTests(unittest.TestCase):
         self.assertIn("No video-channel packets observed after handshake", no_packet["message"])
         self.assertNotIn("control packets, but no video-channel packets", no_packet["message"])
 
+    def test_safe_phase_status_does_not_reflect_untrusted_fields(self):
+        data = {
+            "ok": False,
+            "stage": "VTM_HANDSHAKE",
+            "code": "TIMEOUT",
+            "http_status": 403,
+            "signed_url": "https://secret.invalid/?token=VERY_PRIVATE",
+        }
+        result = runner.summarize_cloud_trace(json.dumps(data).encode())
+        self.assertFalse(result["ok"])
+        self.assertIn("VTM_HANDSHAKE / TIMEOUT", result["message"])
+        self.assertIn("HTTP 403", result["message"])
+        self.assertNotIn("secret.invalid", result["message"])
+        self.assertNotIn("VERY_PRIVATE", result["message"])
+        data["stage"] = "PRIVATE_USER_STRING"
+        self.assertIn("unrecognized", runner.summarize_cloud_trace(json.dumps(data).encode())["message"])
+
     def test_trace_summary_shows_only_fixed_packet_metadata(self):
         payload = b'[{"channel_name":"CONTROL","transport":"UNKNOWN","token":"secret"},' \
             b'{"channel_name":"STREAM","transport":"RTP","encrypted":true,"url":"secret"},' \
