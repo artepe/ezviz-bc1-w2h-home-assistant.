@@ -22,14 +22,27 @@ def collect_packet_metadata(client, serial: str, *, max_packets: int = 24) -> li
 
     stream = open_cloud_stream(client, serial, timeout=10.0)
     try:
-        stream.start(deadline=time.monotonic() + 10.0)
-        items = []
+        # The handshake itself consumes StreamInfoRsp packets; they are not
+        # subsequently visible to iter_packets. Report only its safe status,
+        # never the negotiated URL, session ID, public keys or stream tokens.
+        negotiation = stream.start(deadline=time.monotonic() + 12.0)
+        result_code = getattr(negotiation, "result", None)
+        if type(result_code) is not int or not -32768 <= result_code <= 32767:
+            result_code = None
+        items = [{
+            "channel_name": "HANDSHAKE",
+            "result_code": result_code,
+            "has_stream_session": bool(getattr(negotiation, "streamssn", None)),
+        }]
+        # A BC1 may wake slowly. The previous 10-second packet wait could
+        # return [] even though VTM handshake succeeded and a late keyframe
+        # would appear afterward. Do not silently call that "camera offline".
         for index, packet in enumerate(stream.iter_packets(
             max_packets=max_packets,
-            duration_seconds=12.0,
+            duration_seconds=28.0,
             duration_from_start=True,
-            first_packet_timeout=10.0,
-            stream_packet_timeout_seconds=10.0,
+            first_packet_timeout=25.0,
+            stream_packet_timeout_seconds=20.0,
             include_control=True,
         )):
             # summarize_vtm_packet deliberately omits packet.body, stream URLs,
