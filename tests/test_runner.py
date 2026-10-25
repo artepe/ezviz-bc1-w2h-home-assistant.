@@ -163,6 +163,29 @@ class LifecycleTests(unittest.TestCase):
         )
         self.assertTrue(all(w.process is None for w in workers))
 
+    def test_manual_restart_only_touches_selected_proxy_and_is_rate_limited(self):
+        first, second = worker(1), worker(2)
+        first.process = Mock(pid=101)
+        second.process = Mock(pid=102)
+        original_peer = second.process
+        runner.WORKERS = [first, second]
+        runtime = runner.Runtime()
+        with patch("runner.time.monotonic", return_value=1000), patch.object(
+            runner, "shutdown_workers"
+        ) as shutdown, patch.object(runner, "log"):
+            self.assertTrue(runtime.restart_camera(first.port))
+            shutdown.assert_called_once_with([first])
+            self.assertFalse(runtime.restart_camera(first.port))
+        self.assertIs(second.process, original_peer)
+        self.assertEqual(first.retry_at, 0.0)
+        self.assertTrue(runtime.reload.is_set())
+        with patch("runner.time.monotonic", return_value=1061), patch.object(
+            runner, "shutdown_workers"
+        ) as shutdown, patch.object(runner, "log"):
+            self.assertTrue(runtime.restart_camera(first.port))
+            shutdown.assert_called_once_with([first])
+        self.assertFalse(runtime.restart_camera(9999))
+
     def test_stop_signal_prevents_new_workers(self):
         workers = [worker(1), worker(2)]
         with patch.object(runner.subprocess, "Popen") as spawn:
