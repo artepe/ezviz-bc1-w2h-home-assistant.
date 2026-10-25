@@ -41,10 +41,36 @@ class CloudPacketProbeTests(unittest.TestCase):
         stream.start.assert_called_once()
         stream.iter_packets.assert_called_once()
         stream.close.assert_called_once()
-        self.assertEqual(len(result), 2)
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0]["channel_name"], "HANDSHAKE")
         self.assertNotIn("PRIVATE_VIDEO", repr(result))
         self.assertNotIn("PRIVATE_TOKEN", repr(result))
-        self.assertEqual(result[1]["encrypted"], True)
+        self.assertEqual(result[2]["encrypted"], True)
+        kwargs = stream.iter_packets.call_args.kwargs
+        self.assertEqual(kwargs["first_packet_timeout"], 25.0)
+        self.assertEqual(kwargs["duration_seconds"], 28.0)
+
+    def test_handshake_does_not_export_session_string(self):
+        stream = Mock()
+        stream.start.return_value = SimpleNamespace(
+            result=0, streamssn="PRIVATE_VTM_SESSION_ID"
+        )
+        stream.iter_packets.return_value = []
+        cloud = ModuleType("pyezvizapi.cloud_stream")
+        cloud.open_cloud_stream = Mock(return_value=stream)
+        transport = ModuleType("pyezvizapi.stream_transport")
+        transport.summarize_vtm_packet = lambda packet, index: None
+        package = ModuleType("pyezvizapi")
+        package.__path__ = []
+        with patch.dict(sys.modules, {
+            "pyezvizapi": package,
+            "pyezvizapi.cloud_stream": cloud,
+            "pyezvizapi.stream_transport": transport,
+        }):
+            events = collect_packet_metadata(Mock(), "CAM")
+        self.assertEqual(events[0]["result_code"], 0)
+        self.assertTrue(events[0]["has_stream_session"])
+        self.assertNotIn("PRIVATE_VTM_SESSION_ID", repr(events))
 
     def test_closes_stream_after_failure(self):
         stream = Mock()
