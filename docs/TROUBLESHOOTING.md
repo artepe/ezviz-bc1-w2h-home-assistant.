@@ -1,5 +1,14 @@
 # Troubleshooting / Vianhaku
 
+## Analyze cloud reports MEDIA_READ / VTM_UNREACHABLE on 0.2.11
+
+The connection negotiated, but upstream pyEzvizApi's `VtmStreamClient._recv_exact` converts a socket idle interval of 10 seconds to `DeviceException`, which 0.2.11 labels `VTM_UNREACHABLE`. This can happen despite Analyze cloud requesting 25s to receive a first media packet: the lower socket idle deadline wins. It does **not** establish that an EZVIZ mobile-app camera is offline.
+
+App 0.2.12 uses an explicit 20s VTM socket timeout for normal proxy streaming and a 26s underlying timeout for the bounded source trace. Analyze cloud reports a more precise `VTM_IDLE_TIMEOUT` (when the library's known exact error is detected) and includes only safe handshake/result fields if a media read fails.
+
+Check **Analyze cloud** first with go2rtc temporarily stopped and no phone live viewer. If the report contains `Session reported=no` or a nonzero `VTM handshake result`, inspect actual VTM response/channel selection rather than FFmpeg settings. If the session is present but zero packets even with the longer window, a cloud-to-device wake/stream negotiation issue remains; prolonging timeouts indefinitely is not a fix. If RTP/MPEG_PS/TS packets arrive, analyze the actual payload transport next before changing remux behavior.
+
+
 ## Analyze cloud fails before usable VTM metadata (0.2.10)
 
 The 0.2.10 child Python inspector suppresses any upstream exception (which may contain private session URLs). This masks whether the token file could be loaded, EZVIZ cloud metadata could be fetched, a VTM session was negotiated, or video packets could be read. The error **does not prove the camera or W2H is offline**, especially when EZVIZ mobile playback works.
