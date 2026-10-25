@@ -163,6 +163,24 @@ class LifecycleTests(unittest.TestCase):
         )
         self.assertTrue(all(w.process is None for w in workers))
 
+    def test_trace_counts_encrypted_video_channel_and_sanitizes_handshake(self):
+        events = [
+            {"channel_name": "HANDSHAKE", "result_code": 0, "has_stream_session": True,
+             "streamurl": "https://secret.example?token=PRIVATE"},
+            {"channel_name": "ENCRYPTED_STREAM", "transport": "UNKNOWN", "encrypted": True,
+             "media": "PRIVATE"},
+        ]
+        result = runner.summarize_cloud_trace(json.dumps(events).encode())
+        self.assertTrue(result["ok"])
+        self.assertIn("session reported=yes", result["message"])
+        self.assertIn("encrypted=1", result["message"])
+        self.assertIn("UNKNOWN=1", result["message"])
+        self.assertNotIn("PRIVATE", result["message"])
+        no_packet = runner.summarize_cloud_trace(json.dumps(events[:1]).encode())
+        self.assertFalse(no_packet["ok"])
+        self.assertIn("No video-channel packets observed after handshake", no_packet["message"])
+        self.assertNotIn("control packets, but no video-channel packets", no_packet["message"])
+
     def test_trace_summary_shows_only_fixed_packet_metadata(self):
         payload = b'[{"channel_name":"CONTROL","transport":"UNKNOWN","token":"secret"},' \
             b'{"channel_name":"STREAM","transport":"RTP","encrypted":true,"url":"secret"},' \
