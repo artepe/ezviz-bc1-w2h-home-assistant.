@@ -52,6 +52,7 @@ class CloudPacketProbeTests(unittest.TestCase):
         cloud = ModuleType("pyezvizapi.cloud_stream")
         cloud.open_cloud_stream = Mock(return_value=stream)
         transport = ModuleType("pyezvizapi.stream_transport")
+        transport.summarize_vtm_packet = lambda packet, index: None
         package = ModuleType("pyezvizapi")
         package.__path__ = []
         with patch.dict(sys.modules, {
