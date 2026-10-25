@@ -1,5 +1,14 @@
 # Troubleshooting / Vianhaku
 
+## Cloud trace says zero packets, but phone app plays video
+
+In 0.2.9 the source trace could yield an empty post-handshake packet list because the first-packet window was only 10 seconds. The separate `stream.start()` call consumes the negotiation response, so `0 control packets` cannot be taken to mean there was no cloud response. The old report also omitted `ENCRYPTED_STREAM` channel from media counts.
+
+After the 0.2.10 image is published and updated, close go2rtc live players and the EZVIZ phone live view before pressing **Analyze cloud** once per camera. The report includes safe `VTM handshake result`, `session reported`, post-handshake RTP/MPEG_PS/MPEG_TS/UNKNOWN counts and encrypted counts. No raw video or authentication strings are returned. There may still be no packets: that indicates no packets **during the bounded observation**, not a permanent network failure.
+
+Use this result before changing transport or decryption logic. Do not toggle `allow_encrypted`, guess media keys, reset camera serials, or edit video-only go2rtc sources to solve an upstream `FFMPEG_BAD_INPUT` without confirming the actual source format.
+
+
 ## FFMPEG_BAD_INPUT persists on 0.2.8 and both go2rtc feeds time out
 
 Version 0.2.9 adds a privacy-safe upstream VTM packet inspection. Open EZVIZ Cameras, close other live views, and click **Analyze cloud** separately for each camera. The diagnostic tells whether the raw EZVIZ video channel is RTP, MPEG_PS, MPEG_TS, unknown or flagged encrypted, without capturing media bytes or exposing session information. It does not decode video, and cannot by itself prove codec compatibility. A trace with control packets but no video-channel packets means no media was observed during the bounded test. Tests are user initiated and are limited to once per 90 seconds per camera.
