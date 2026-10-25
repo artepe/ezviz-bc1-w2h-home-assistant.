@@ -25,6 +25,62 @@ INGRESS_PORT = 8788
 MAX_BODY = 32 * 1024
 
 
+def explain_ffmpeg_error(reason: str) -> str:
+    """Return only fixed FFmpeg diagnosis labels, never untrusted stderr text.
+
+    pyEzvizApi may include full camera/cloud URLs, query credentials or
+    filesystem paths in FFmpeg stderr. Inspect fixed substrings only.
+    """
+    if "could not launch ffmpeg" in reason or "ffmpeg: not found" in reason:
+        return "HTTP 502 [FFMPEG_MISSING]: FFmpeg could not start in the EZVIZ app container."
+    if "ffmpeg input writer did not stop" in reason:
+        return "HTTP 502 [FFMPEG_STALLED]: FFmpeg's input writer did not stop after stream cancellation."
+    if any(term in reason for term in (
+        "output file #0 does not contain any stream",
+        "output file does not contain any stream",
+        "matches no streams",
+        "does not contain any stream",
+        "no video stream",
+    )):
+        return "HTTP 502 [FFMPEG_NO_VIDEO]: FFmpeg did not detect a usable video stream in the camera data."
+    if any(term in reason for term in (
+        "could not find codec parameters",
+        "invalid data found when processing input",
+        "error opening input file",
+        "could not find stream information",
+    )):
+        return "HTTP 502 [FFMPEG_BAD_INPUT]: FFmpeg could not recognize the input from EZVIZ. The supplied video may be incomplete or in an unsupported format."
+    if any(term in reason for term in (
+        "picture size 0x0 is invalid",
+        "dimensions not set",
+        "width and height not set",
+        "unspecified size",
+        "sps unavailable",
+        "non-existing pps",
+        "pps id out of range",
+    )):
+        return "HTTP 502 [FFMPEG_VIDEO_HEADER]: Video codec headers or frame dimensions were missing from the cloud stream."
+    if any(term in reason for term in (
+        "non-monotonous dts",
+        "non monotonically increasing dts",
+        "invalid timestamps",
+    )):
+        return "HTTP 502 [FFMPEG_TIMESTAMPS]: The cloud video timestamps were invalid for MPEG-TS remuxing."
+    if any(term in reason for term in (
+        "invalid nal unit",
+        "error while decoding",
+        "decode_slice_header error",
+        "missing picture",
+        "invalid frame data",
+    )):
+        return "HTTP 502 [FFMPEG_BITSTREAM]: The cloud stream contained unrecognizable or damaged video frames."
+    if "broken pipe" in reason:
+        return "HTTP 502 [FFMPEG_PIPE]: FFmpeg lost a media pipe. Close other live viewers and test again."
+    if "ffmpeg exited with status" in reason:
+        return "HTTP 502 [FFMPEG_EXIT]: FFmpeg exited unsuccessfully without a recognized diagnostic. The cause needs further upstream instrumentation."
+    return "HTTP 502 [FFMPEG_REMUX]: FFmpeg failed while processing the EZVIZ cloud video stream."
+
+
 def explain_proxy_error(status: int, payload: bytes) -> str:
     """Classify the upstream HTTP error without exposing EZVIZ session secrets.
 
@@ -71,7 +127,7 @@ def explain_proxy_error(status: int, payload: bytes) -> str:
     if "rtp cloud stream did not contain a complete video nal unit" in reason:
         return "HTTP 502 [RTP_INCOMPLETE]: The cloud stream delivered RTP packets without a complete video frame."
     if "ffmpeg" in reason:
-        return "HTTP 502 [FFMPEG_REMUX]: FFmpeg failed while converting the cloud stream to MPEG-TS."
+        return explain_ffmpeg_error(reason)
     if "mpeg" in reason:
         return "HTTP 502 [MPEG_TRANSPORT]: The cloud stream container or MPEG transport could not be handled."
     if "decrypt" in reason:
