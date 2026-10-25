@@ -280,8 +280,8 @@ class Runtime:
             serial, token = worker.serial, worker.token
         try:
             completed = subprocess.run(
-                [CLI, "--token-file", str(token), "stream", "trace",
-                 "--serial", serial, "--max-packets", "24", "--timeout", "8"],
+                ["/opt/ezviz-venv/bin/python", "/app/cloud_inspect.py",
+                 "--token-file", str(token), "--serial", serial],
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL,
