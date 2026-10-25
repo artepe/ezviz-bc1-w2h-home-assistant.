@@ -1,5 +1,12 @@
 # Troubleshooting / Vianhaku
 
+## Analyze cloud fails before usable VTM metadata (0.2.10)
+
+The 0.2.10 child Python inspector suppresses any upstream exception (which may contain private session URLs). This masks whether the token file could be loaded, EZVIZ cloud metadata could be fetched, a VTM session was negotiated, or video packets could be read. The error **does not prove the camera or W2H is offline**, especially when EZVIZ mobile playback works.
+
+Version 0.2.11 preserves confidentiality but returns a fixed, stage-specific result: TOKEN_READ, CLIENT_INIT, CLOUD_LOOKUP, VTM_HANDSHAKE or MEDIA_READ, plus a safe code (SESSION_MISSING, TIMEOUT, CLOUD_AUTH_REJECTED, etc.). No raw exception text is ever returned. To narrow the issue, close other live streams, click **Analyze cloud** for one camera, and report only that status. Repeated camera re-pairing, go2rtc edits, or forced cloud login is not needed until the stage is known.
+
+
 ## Cloud trace says zero packets, but phone app plays video
 
 In 0.2.9 the source trace could yield an empty post-handshake packet list because the first-packet window was only 10 seconds. The separate `stream.start()` call consumes the negotiation response, so `0 control packets` cannot be taken to mean there was no cloud response. The old report also omitted `ENCRYPTED_STREAM` channel from media counts.
