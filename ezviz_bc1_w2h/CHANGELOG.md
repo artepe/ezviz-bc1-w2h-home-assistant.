@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.10 - Correct empty VTM trace interpretation after BC1 startup
+
+- Correct the misleading 0.2.9 `Cloud trace: 0 control packets` result. `stream.start()` consumes the stream-info handshake before packet iteration, so an empty post-handshake probe does not mean the cloud never sent any control frames.
+- Preserve only safe handshake metadata: numeric VTM response result (when present) and a boolean indicating whether a stream session was negotiated; never return the session itself or signed URL.
+- Include ENCRYPTED_STREAM in video-channel packet counts rather than silently treating those encrypted packets as non-video.
+- Give slowly waking battery cameras up to 25 seconds for the first post-handshake packet (28 seconds total sampling after start) and increase the outer test deadline to 70 seconds. Probes remain user initiated, one at a time and rate limited.
+- No change to the EZVIZ cloud proxy video pipeline, device settings, go2rtc sources, or existing login state. Live-media handling remains hardware-unverified.
+- Add regression checks for privacy, handshake status, timeout and encrypted-stream classification.
+
+
 ## 0.2.9 - Bounded source-protocol diagnosis (no video capture)
 
 - Add a manual **Analyze cloud** action for saved BC1 cameras. It runs an isolated Python VTM inspection with the installed pyEzvizApi inside the EZVIZ app container; unlike the handshake-only CLI trace, this explicitly starts the live stream and reports only counts of RTP, MPEG-PS, MPEG-TS, unknown and encrypted video-channel packets.
