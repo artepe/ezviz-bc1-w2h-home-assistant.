@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.8 - Trial cloud RTP media timing fix for FFmpeg_BAD_INPUT
+
+- Move the pinned `pyEzvizApi` dependency from 2026-10-10 commit `6df75d95a2ee6a68fb71446ee74a55572e2014ea` to 2026-10-11 commit `a38ba757a3686cb412cc5029225e2608cdbccc4b` (upstream PR #308), which updates cloud RTP stream timing and packet processing relevant to FFmpeg MPEG-TS remuxing.
+- Investigates observed `HTTP 502 [FFMPEG_BAD_INPUT]` on EZVIZ BC1/W2H where the mobile app live view works but both Home Assistant streams fail. This is an **experimental upstream fix**, not yet hardware-verified for this failure.
+- Retain existing EZVIZ credentials/session storage, two-camera ports, go2rtc video-only sources, per-camera restart, and privacy-safe diagnostics.
+- CI builds and smoke-checks the pinned ARM64 image before publishing. If the test still returns FFMPEG_BAD_INPUT, collect the new diagnostic result and revert to prior published 0.2.7 if necessary.
+
+
 ## 0.2.7 - Precise, privacy-safe FFmpeg failure codes
 
 - Fix overly generic `HTTP 502 [FFMPEG_REMUX]` Test video error classification. The upstream library returns a bounded FFmpeg stderr tail, but previous versions hid all actionable details under one label.

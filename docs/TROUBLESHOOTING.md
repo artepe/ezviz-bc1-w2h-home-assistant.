@@ -1,5 +1,14 @@
 # Troubleshooting / Vianhaku
 
+## Two BC1 streams fail with FFMPEG_BAD_INPUT after hub reconnect
+
+The official EZVIZ phone app can show video while the experimental cloud proxy cannot remux the same camera's cloud media. Go2rtc cannot repair the proxy's HTTP 502. The upstream `pyEzvizApi` package pinned at 2026-10-10 did not include the subsequent cloud RTP timing fix PR #308.
+
+Experimental 0.2.8 switches to the **2026-10-11 upstream version** pinned to `a38ba757a3686cb412cc5029225e2608cdbccc4b`. No camera or credentials changes. After the ARM64 CI image is published, update the existing EZVIZ app, open **EZVIZ Cameras → Test video** with other viewers closed, and then try go2rtc with the existing video-only streams. Confirm both cameras separately; a successful installation or healthy proxy process does not mean live video works.
+
+If Test video still reports `FFMPEG_BAD_INPUT`, **stop repeated restarts**: the actual input is still unsupported or incomplete. Record the exact error code and investigate source media format separately; don't post raw FFmpeg stderr or EZVIZ URLs containing session tokens. Version 0.2.7 is the prior published rollback image. The 0.2.8 change is not a verified hardware repair.
+
+
 ## EZVIZ phone app live video works, but Test video returns FFmpeg HTTP 502
 
 When W2H and both cameras stream normally in the EZVIZ mobile app, do not remove/re-add the cameras or keep refreshing account credentials. The app proxy has already reached the video processing stage, and the video conversion failure needs a more specific cause. Updating go2rtc sources does not repair a failing upstream MPEG-TS URL.
