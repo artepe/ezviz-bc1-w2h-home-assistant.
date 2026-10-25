@@ -1,6 +1,7 @@
 """Offline checks for camera isolation, token handling and process lifecycle."""
 
 import importlib.util
+import json
 from pathlib import Path
 import signal
 import subprocess
