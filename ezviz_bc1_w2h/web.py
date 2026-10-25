@@ -215,6 +215,14 @@ class CameraService:
         except (OSError, URLError):
             return {"ok": False, "message": "No video data arrived within 35 seconds. Check that the W2H base station is online in the EZVIZ app and its network cable is connected. Wake the camera in the app; when connectivity returns, use Restart proxy and test again."}
 
+    def inspect_cloud(self, port: int) -> dict[str, object]:
+        """Analyze one saved camera's cloud packet types without returning media."""
+        with self.client.lock:
+            cameras = parse_cameras(self.client.raw_options())
+        if not any(camera.port == port for camera in cameras):
+            raise ValueError("Camera not found. Refresh this page.")
+        return self.runtime.trace_cloud(port)
+
     def restart(self, port: int) -> dict[str, object]:
         """One-camera manual proxy recovery; never reset EZVIZ credentials."""
         with self.client.lock:
@@ -333,14 +341,15 @@ class CameraHandler(BaseHTTPRequestHandler):
             self.respond(400, {"error": "Invalid form data."})
             return
         path = urlsplit(self.path).path
-        match = re.fullmatch(r"/api/cameras/(\d+)(/test|/test-audio|/restart)?", path)
+        match = re.fullmatch(r"/api/cameras/(\d+)(/test|/test-audio|/restart|/inspect-cloud)?", path)
         try:
             if operation == "add" and path == "/api/cameras":
                 self.server.service.change("add", payload)
             elif match and operation == "add" and match.group(2):
                 action = {"/test": self.server.service.test,
                           "/test-audio": self.server.service.test_audio,
-                          "/restart": self.server.service.restart}[match.group(2)]
+                          "/restart": self.server.service.restart,
+                          "/inspect-cloud": self.server.service.inspect_cloud}[match.group(2)]
                 self.respond(200, action(int(match.group(1))))
                 return
             elif match and not match.group(2) and operation in ("edit", "remove"):

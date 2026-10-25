@@ -368,6 +368,18 @@ class IngressTests(SupervisorFixture):
         self.assertNotIn("password", state)
         self.assertEqual(headers["Cache-Control"], "no-store")
 
+    def test_cloud_trace_endpoint_uses_saved_camera_and_csrf(self):
+        self.runtime.trace_cloud.return_value = {"ok": True, "message": "Cloud media diagnosis: RTP=1"}
+        status, body, _ = self.call("POST", "/api/cameras/8558/inspect-cloud", {})
+        self.assertEqual(status, 200)
+        self.assertTrue(json.loads(body)["ok"])
+        self.runtime.trace_cloud.assert_called_once_with(8558)
+        status, _, _ = self.call("POST", "/api/cameras/8558/inspect-cloud", {}, csrf=False)
+        self.assertEqual(status, 403)
+        status, _, _ = self.call("POST", "/api/cameras/8559/inspect-cloud", {})
+        self.assertEqual(status, 400)
+        self.runtime.trace_cloud.assert_called_once()
+
     def test_restart_endpoint_restarts_only_requested_camera_without_saving_settings(self):
         self.runtime.restart_camera.return_value = True
         status, body, _ = self.call("POST", "/api/cameras/8558/restart", {})

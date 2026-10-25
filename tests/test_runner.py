@@ -163,6 +163,41 @@ class LifecycleTests(unittest.TestCase):
         )
         self.assertTrue(all(w.process is None for w in workers))
 
+    def test_trace_summary_shows_only_fixed_packet_metadata(self):
+        payload = b'[{"channel_name":"CONTROL","transport":"UNKNOWN","token":"secret"},' \
+            b'{"channel_name":"STREAM","transport":"RTP","encrypted":true,"url":"secret"},' \
+            b'{"channel_name":"STREAM","transport":"MPEG_PS","encrypted":false}]'
+        result = runner.summarize_cloud_trace(payload)
+        self.assertTrue(result["ok"])
+        self.assertIn("RTP=1", result["message"])
+        self.assertIn("MPEG_PS=1", result["message"])
+        self.assertIn("encrypted=1", result["message"])
+        self.assertNotIn("secret", result["message"])
+        no_media = runner.summarize_cloud_trace(b'[{"channel_name":"CONTROL"}]')
+        self.assertFalse(no_media["ok"])
+        self.assertIn("no video-channel packets", no_media["message"])
+        self.assertFalse(runner.summarize_cloud_trace(b'not-json')["ok"])
+
+    def test_trace_invokes_only_selected_camera_without_showing_upstream_output(self):
+        first, second = worker(1), worker(2)
+        first.process = Mock(pid=100)
+        first.process.poll.return_value = None
+        second.process = Mock(pid=200)
+        second.process.poll.return_value = None
+        runner.WORKERS = [first, second]
+        runtime = runner.Runtime()
+        metadata = b'[{"channel_name":"STREAM","transport":"RTP","encrypted":false}]'
+        with patch.object(runner.subprocess, "run", return_value=Mock(returncode=0, stdout=metadata)) as run:
+            self.assertTrue(runtime.trace_cloud(8558)["ok"])
+            args = run.call_args.args[0]
+            self.assertEqual(args[args.index("--serial") + 1], first.serial)
+            self.assertEqual(args[args.index("--token-file") + 1], str(first.token))
+            self.assertEqual(run.call_args.kwargs["stderr"], subprocess.DEVNULL)
+            self.assertEqual(run.call_count, 1)
+            self.assertFalse(runtime.trace_cloud(8558)["ok"])
+            self.assertEqual(run.call_count, 1)
+            self.assertTrue(runtime.trace_cloud(8559)["ok"])
+
     def test_manual_restart_only_touches_selected_proxy_and_is_rate_limited(self):
         first, second = worker(1), worker(2)
         first.process = Mock(pid=101)

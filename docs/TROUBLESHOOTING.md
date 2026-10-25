@@ -1,5 +1,12 @@
 # Troubleshooting / Vianhaku
 
+## FFMPEG_BAD_INPUT persists on 0.2.8 and both go2rtc feeds time out
+
+Version 0.2.9 adds a privacy-safe upstream VTM packet inspection. Open EZVIZ Cameras, close other live views, and click **Analyze cloud** separately for each camera. The diagnostic tells whether the raw EZVIZ video channel is RTP, MPEG_PS, MPEG_TS, unknown or flagged encrypted, without capturing media bytes or exposing session information. It does not decode video, and cannot by itself prove codec compatibility. A trace with control packets but no video-channel packets means no media was observed during the bounded test. Tests are user initiated and are limited to once per 90 seconds per camera.
+
+If source packets are RTP, investigate codec/parameter-set reception; if MPEG_PS, investigate missing pack/PES framing; if unknown or encrypted, first investigate upstream format/decryption. Do not keep cycling camera serials or go2rtc settings, because the proxy already reports FFMPEG_BAD_INPUT.
+
+
 ## Two BC1 streams fail with FFMPEG_BAD_INPUT after hub reconnect
 
 The official EZVIZ phone app can show video while the experimental cloud proxy cannot remux the same camera's cloud media. Go2rtc cannot repair the proxy's HTTP 502. The upstream `pyEzvizApi` package pinned at 2026-10-10 did not include the subsequent cloud RTP timing fix PR #308.
