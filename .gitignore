@@ -18,3 +18,8 @@ __pycache__/
 .venv-video/
 venv/
 .DS_Store
+
+# Secrets and local credentials: never commit
+secrets.yaml
+*.p12
+.storage/
