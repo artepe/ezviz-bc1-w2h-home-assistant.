@@ -25,24 +25,24 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Read app release metadata
         id: release
         run: python3 scripts/release_metadata.py >> "$GITHUB_OUTPUT"
       - name: Check camera configuration, persistence, ingress and supervision
         run: python3 -m unittest discover -s tests -v
       - name: Set up QEMU for ARM64
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
       - name: Authenticate to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build Raspberry Pi 5 image for validation
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./ezviz_bc1_w2h
           file: ./ezviz_bc1_w2h/Dockerfile
