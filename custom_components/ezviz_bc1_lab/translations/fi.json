@@ -1,0 +1,27 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "EZVIZ BC1 Lab - paikallinen testi",
+        "description": "Erillinen testiasennus. Kaynnista Macin kaksi VTM-proxya ensin. Home Assistantin on saavutettava Macin IP-osoite.",
+        "data": {
+          "host": "Macin / proxyn IP-osoite",
+          "serial_1": "Kameran 1 sarjanumero",
+          "port_1": "Kameran 1 portti",
+          "serial_2": "Kameran 2 sarjanumero",
+          "port_2": "Kameran 2 portti"
+        }
+      }
+    },
+    "error": {
+      "invalid_host": "Anna IP tai konenimi, ei URL-osoitetta",
+      "invalid_serial": "Virheellinen kameran sarjanumero",
+      "same_serial": "Sarjanumeroiden on oltava eri",
+      "invalid_port": "Portin pitaa olla valilta 1-65535",
+      "same_port": "Porttien on oltava eri"
+    },
+    "abort": {
+      "already_configured": "Tama proxy-osoite on jo lisatty"
+    }
+  }
+}
