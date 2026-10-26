@@ -3,8 +3,8 @@
 Experimental integration for testing EZVIZ BC1 camera feeds in Home Assistant. This is **not** a replacement for the existing `ezviz_bc1_w2h` Home Assistant add-on; both may coexist. Home Assistant's camera entities consume the MPEG-TS stream provided by the already-running Mac VTM proxy.
 
 **Mac proxy requirements:** two proxies already running and reachable over the LAN:
-- Camera 1 serial `G23915155-G28068598`, port `8558`
-- Camera 2 serial `G23915155-G28068570`, port `8559`
+- Camera 1 serial: enter your own BC1 identifier, port `8558`
+- Camera 2 serial: enter your own BC1 identifier, port `8559`
 - Proxy host `192.168.10.245` (adjust if the Mac IP changes).
 
 ## Install in Home Assistant OS Terminal
