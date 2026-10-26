@@ -1,5 +1,7 @@
 # EZVIZ BC1 + W2H → Home Assistant Live Streaming
 
+> **New experimental Home Assistant camera integration:** [EZVIZ BC1 Lab v0.1.0 – installation and diagnostics](docs/EZVIZ_BC1_LAB.md). It connects to an already-running Mac VTM video proxy and does not remove the existing Raspberry Pi add-on. Video playback is not yet verified.
+
 **Unofficial, tested method to view EZVIZ BC1 battery cameras paired with an EZVIZ W2H base station in Home Assistant, without native camera RTSP or ONVIF.**
 
 **Suomeksi:** Toimivaksi testattu tapa näyttää **EZVIZ BC1 -akkukameran** livekuva **W2H-tukiaseman** kautta Home Assistantin Lovelace-näkymässä ilman kameran omaa RTSP- tai ONVIF-palvelinta.
