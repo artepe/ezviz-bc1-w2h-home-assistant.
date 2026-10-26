@@ -1,0 +1,10 @@
+{
+  "domain": "ezviz_bc1_lab",
+  "name": "EZVIZ BC1 Lab (Local Test)",
+  "version": "0.1.0",
+  "documentation": "https://www.home-assistant.io/integrations/camera/",
+  "config_flow": true,
+  "dependencies": ["stream"],
+  "codeowners": [],
+  "iot_class": "cloud_polling"
+}
