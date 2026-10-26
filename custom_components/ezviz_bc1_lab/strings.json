@@ -1,0 +1,27 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "EZVIZ BC1 Lab - local test cameras",
+        "description": "Separate test integration. Start both VTM proxy processes on your Mac first. These addresses must be reachable from Home Assistant.",
+        "data": {
+          "host": "Mac / proxy IP address",
+          "serial_1": "Camera 1 serial number",
+          "port_1": "Camera 1 proxy port",
+          "serial_2": "Camera 2 serial number",
+          "port_2": "Camera 2 proxy port"
+        }
+      }
+    },
+    "error": {
+      "invalid_host": "Enter only an IP address or hostname (not a URL)",
+      "invalid_serial": "Invalid camera serial format",
+      "same_serial": "Camera serials must be different",
+      "invalid_port": "Port must be between 1 and 65535",
+      "same_port": "Proxy ports must be different"
+    },
+    "abort": {
+      "already_configured": "This proxy host is already configured"
+    }
+  }
+}
