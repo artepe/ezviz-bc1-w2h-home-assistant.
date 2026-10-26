@@ -69,9 +69,9 @@ class EZVIZBC1LabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = vol.Schema(
             {
                 vol.Required(CONF_HOST, default="192.168.10.245"): str,
-                vol.Required(CONF_SERIAL_1, default="G23915155-G28068598"): str,
+                vol.Required(CONF_SERIAL_1): str,
                 vol.Required(CONF_PORT_1, default=8558): vol.Coerce(int),
-                vol.Required(CONF_SERIAL_2, default="G23915155-G28068570"): str,
+                vol.Required(CONF_SERIAL_2): str,
                 vol.Required(CONF_PORT_2, default=8559): vol.Coerce(int),
             }
         )
