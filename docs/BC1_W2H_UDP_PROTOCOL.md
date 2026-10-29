@@ -32,6 +32,37 @@ It documents:
 
 **Do not assume this fork works on BC1/W2H.** It currently advertises a known H.264 codec gap (https://github.com/pedropaulovc/go2rtc/issues/3). The tested user's BC1 stream is H.264, mostly carried as MPEG-PS, rather than the fork's NVR HEVC pathway. Also the fork uses cloud APIs to bootstrap key and endpoint information; working local iPhone transport does not establish that this fork can operate without EZVIZ cloud access.
 
+## 2026-10-29: refined PCAP diagnosis after HTTP 5XX
+
+The owner tested `ezviz_bc1_2_hybrid` in go2rtc. go2rtc displayed a 5XX opening
+`http://127.0.0.1:8658/G23915155-G28068570.ts`, showing that go2rtc
+reached the hybrid endpoint but neither source supplied MPEG-TS data. This
+does **not** establish a go2rtc configuration problem.
+
+The original private PCAP was re-read offline (the file is NOT committed).
+For the 3,104 datagrams between iPhone and W2H, the V3 opcodes **actually
+present on this particular local link** are:
+
+| Direction | V3 opcode | Count |
+| --- | --- | ---: |
+| iPhone → W2H | `0x0C00` | 6 |
+| W2H → iPhone | `0x0C00` | 1 |
+| iPhone → W2H | `0x0C01` | 28 |
+| W2H → iPhone | `0x0C01` | 21 |
+
+Crucially, the local link **does not contain a cleartext `0x0C02`
+PLAY_REQUEST**. According to the external reference, a PLAY_REQUEST can be
+carried in an encrypted P2P-server-relayed `0x0B04` message, or otherwise
+occur outside this filtered UDP peer link. The absence of this message
+means the capture on its own is **not enough to build an authenticated
+standalone client**. Do not replay old captured encrypted/session packets.
+
+The current hybrid plugin uses a distinct CAS-dependent TCP local SDK.
+Its HTTP 503 is therefore expected when both local CAS permission and
+cloud media delivery fail. The next implementation must solve P2P
+bootstrap/session authentication and the SRT-style media transport; a
+go2rtc reinstall or a new stream alias cannot fix it.
+
 ## Existing add-on limitation
 
 The experimental `ezviz_bc1_w2h` hybrid `8658` path uses `pyezvizapi stream local-sdk-dump` over *TCP* 9010/9020 with cloud CAS authorization. This is **not the same as the iPhone's successfully captured UDP P2P flow**. Previously observed CAS errors `1052170`, `1052175` and EZVIZ response `20002` do not get fixed merely by using hybrid auto-fallback. A go2rtc HTTP 500 with zero media bytes proves only that the input could not be opened, not which handshake failed.
