@@ -23,7 +23,7 @@ sources fail, this endpoint gives 503 rather than pretending video works.
 
 ## Installation, keeping existing cameras intact
 
-1. Wait until the GitHub Actions image build for **0.2.13** succeeds.
+1. Verify the GitHub Actions multiarchitecture image build for **0.2.13** succeeds (ARM64 for Raspberry Pi 5 and AMD64 for Dell Wyse/mini-PC).
    In Home Assistant update the existing `EZVIZ BC1 / W2H Cloud Proxy`
    add-on **without uninstalling it**.
 2. Under add-on Configuration -> YAML set these **additional** keys;
