@@ -42,11 +42,11 @@ raise SystemExit('The runner did not start through the default s6 entrypoint')
 '''
 
 
-def check(image: str, report_only: bool = False) -> None:
+def check(image: str, report_only: bool = False, platform: str = "linux/arm64") -> None:
     name = 'ezviz-startup-' + uuid.uuid4().hex[:12]
     try:
         subprocess.run([
-            'docker', 'run', '--detach', '--platform', 'linux/arm64',
+            'docker', 'run', '--detach', '--platform', platform,
             '--name', name, '--network', 'none', '--tmpfs', '/data:mode=700',
             '--env', 'SUPERVISOR_TOKEN=ezviz-startup-test-token',
             '--env', 'APP_VERSION=environment-smoke-test', image,
@@ -69,5 +69,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('image')
     parser.add_argument('--report-only', action='store_true')
+    parser.add_argument('--platform', default='linux/arm64', choices=('linux/arm64', 'linux/amd64'))
     args = parser.parse_args()
-    check(args.image, args.report_only)
+    check(args.image, args.report_only, args.platform)
