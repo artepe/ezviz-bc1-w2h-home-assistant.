@@ -51,8 +51,10 @@ class HybridTests(unittest.TestCase):
         import threading
         service.lock = threading.RLock()
         service.cooldowns = {}
+        service.last_result = {}
         service.mark_lan_failure("G28068598")
         self.assertGreater(service.cooldowns["G28068598"], hybrid.time.monotonic()+250)
+        self.assertEqual(service.last_result["G28068598"], "local_unavailable")
 
 
 if __name__ == "__main__":
