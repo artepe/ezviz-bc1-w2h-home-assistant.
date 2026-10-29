@@ -500,6 +500,7 @@ class Runtime:
 
 def main() -> int:
     from web import start_server
+    from hybrid_proxy import HybridService
 
     os.umask(0o077)
     signal.signal(signal.SIGTERM, stop)
@@ -518,6 +519,13 @@ def main() -> int:
         log("Cannot open the camera manager ingress port. Check for a port conflict on 8788.")
         return 5
     log("Camera manager ready through Home Assistant ingress. Open Web UI to add a camera.")
+    try:
+        hybrid = HybridService(lambda: tuple(WORKERS))
+        hybrid.start()
+        log("Experimental hybrid stream ready on 127.0.0.1:8658 (LAN first, cloud fallback).")
+    except OSError:
+        hybrid = None
+        log("Hybrid port 8658 unavailable; original camera cloud proxies stay active.")
     next_reload = 0.0
     supervisor_error: str | None = None
     last_supervisor_warning = float("-inf")
@@ -542,8 +550,12 @@ def main() -> int:
                         log("Supervisor settings connection restored.")
                     supervisor_error = None
             runtime.apply(raw, now)
+            if hybrid is not None:
+                hybrid.configure(raw)
             runtime.reload.wait(timeout=1)
     finally:
+        if hybrid is not None:
+            hybrid.stop()
         server.shutdown()
         server.server_close()
         shutdown_workers(WORKERS)
