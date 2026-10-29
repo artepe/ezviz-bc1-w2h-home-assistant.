@@ -1,5 +1,7 @@
 # EZVIZ BC1 + W2H → Home Assistant Live Streaming
 
+> **Experimental hybrid v0.2.13:** [LAN-first with EZVIZ cloud fallback](docs/EZVIZ_BC1_HYBRID.md). New on-demand port `8658` is separate from the current cloud-only ports `8558/8559`. This does **not** yet prove independent LAN playback on BC1/W2H; the local SDK may fail on cloud CAS authorization. Existing streams remain unchanged.
+
 > **New experimental Home Assistant camera integration:** [EZVIZ BC1 Lab v0.1.0 – installation and diagnostics](docs/EZVIZ_BC1_LAB.md). It connects to an already-running Mac VTM video proxy and does not remove the existing Raspberry Pi add-on. Video playback is not yet verified.
 
 **Unofficial, tested method to view EZVIZ BC1 battery cameras paired with an EZVIZ W2H base station in Home Assistant, without native camera RTSP or ONVIF.**
