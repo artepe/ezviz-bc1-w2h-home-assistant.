@@ -1,7 +1,7 @@
 name: "EZVIZ BC1 / W2H Cloud Proxy (TEST)"
-version: "0.2.12"
+version: "0.2.13"
 slug: "ezviz_bc1_w2h"
-description: "BC1 / W2H cloud video proxy with an Add new camera manager for Home Assistant go2rtc"
+description: "BC1 / W2H cloud proxy plus experimental LAN-first hybrid stream for go2rtc"
 url: "https://github.com/artepe/ezviz-bc1-w2h-home-assistant."
 arch:
   - aarch64
@@ -26,6 +26,9 @@ options:
   password: ""
   force_relogin: false
   restart_delay: 30
+  hybrid_mode: "auto"
+  lan_hub_ip: ""
+  lan_cas_serial: ""
 schema:
   camera_serial: str
   camera_serial_2: str
@@ -37,3 +40,6 @@ schema:
   password: password
   force_relogin: bool
   restart_delay: "int(10,300)"
+  hybrid_mode: "list(auto|local|cloud)"
+  lan_hub_ip: str
+  lan_cas_serial: str
