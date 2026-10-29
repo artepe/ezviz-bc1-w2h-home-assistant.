@@ -74,8 +74,103 @@ jobs:
         env:
           IMAGE: ${{ steps.release.outputs.image }}
           VERSION: ${{ steps.release.outputs.version }}
-      - name: Publish validated Raspberry Pi 5 image
-        run: docker push "$IMAGE:$VERSION"
+      - name: Publish validated aarch64 image
+        run: |
+          docker tag "$IMAGE:$VERSION" "$IMAGE:$VERSION-aarch64"
+          docker push "$IMAGE:$VERSION-aarch64"
+        env:
+          IMAGE: ${{ steps.release.outputs.image }}
+          VERSION: ${{ steps.release.outputs.version }}
+
+  build-amd64:
+    name: Build and publish linux/amd64 image
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Read app release metadata
+        id: release
+        run: python3 scripts/release_metadata.py >> "$GITHUB_OUTPUT"
+      - name: Check camera configuration, persistence, ingress and supervision
+        run: python3 -m unittest discover -s tests -v
+      - name: Set up QEMU for ARM64
+        uses: docker/setup-qemu-action@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+      - name: Authenticate to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build Raspberry Pi 5 image for validation
+        uses: docker/build-push-action@v7
+        with:
+          context: ./ezviz_bc1_w2h
+          file: ./ezviz_bc1_w2h/Dockerfile
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: ${{ steps.release.outputs.image }}:${{ steps.release.outputs.version }}
+          build-args: |
+            BUILD_VERSION=${{ steps.release.outputs.version }}
+            BUILD_ARCH=amd64
+            BASE_IMAGE=ghcr.io/home-assistant/amd64-base:3.22
+      - name: Check built image (Python CLI, FFmpeg and audio detection)
+        run: |
+          docker run --rm --platform linux/amd64 --entrypoint /opt/ezviz-venv/bin/pyezvizapi "$IMAGE:$VERSION" --help >/dev/null
+          docker run --rm --platform linux/amd64 --entrypoint /usr/bin/ffmpeg "$IMAGE:$VERSION" -version
+          docker run --rm --platform linux/amd64 --entrypoint /usr/bin/ffprobe "$IMAGE:$VERSION" -version
+          docker run --rm --platform linux/amd64 --entrypoint /opt/ezviz-venv/bin/python "$IMAGE:$VERSION" -c 'import sys; sys.path.insert(0, "/app"); import camera_config, supervisor_client, web, runner, hybrid_proxy; from pathlib import Path; import cloud_inspect; from pyezvizapi.cloud_stream import open_cloud_stream; from pyezvizapi.stream_transport import summarize_vtm_packet; assert callable(open_cloud_stream) and callable(summarize_vtm_packet) and (Path("/app/cloud_inspect.py")).is_file()'
+          docker run --rm --platform linux/amd64 --entrypoint /opt/ezviz-venv/bin/python "$IMAGE:$VERSION" -c 'import pyezvizapi.cloud_stream as cloud; from pyezvizapi.remux import ffmpeg_mpegts_command; assert callable(cloud.copy_cloud_stream_packets_to_mpegts); assert ffmpeg_mpegts_command("ffmpeg", input_format="h264")[-2:] == ["mpegts", "pipe:1"]'
+          docker run --rm --platform linux/amd64 --volume "$PWD/tests:/tests:ro" --env PYTHONPATH=/app --entrypoint /opt/ezviz-venv/bin/python "$IMAGE:$VERSION" -m unittest discover -s /tests -p test_audio_probe.py -v
+        env:
+          IMAGE: ${{ steps.release.outputs.image }}
+          VERSION: ${{ steps.release.outputs.version }}
+      - name: Report previous init environment (regression baseline, amd64)
+        if: steps.release.outputs.version == '0.2.3'
+        run: python3 scripts/check_container_environment.py "$IMAGE:0.2.2" --report-only
+        env:
+          IMAGE: ${{ steps.release.outputs.image }}
+      - name: Check default s6 startup preserves Supervisor token
+        run: python3 scripts/check_container_environment.py "$IMAGE:$VERSION" --platform linux/amd64
+        env:
+          IMAGE: ${{ steps.release.outputs.image }}
+          VERSION: ${{ steps.release.outputs.version }}
+      - name: Publish validated amd64 image
+        run: |
+          docker tag "$IMAGE:$VERSION" "$IMAGE:$VERSION-amd64"
+          docker push "$IMAGE:$VERSION-amd64"
+        env:
+          IMAGE: ${{ steps.release.outputs.image }}
+          VERSION: ${{ steps.release.outputs.version }}
+
+
+  publish-multiarch:
+    name: Publish combined amd64/aarch64 image tag
+    needs: [build-arm64, build-amd64]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Read app release metadata
+        id: release
+        run: python3 scripts/release_metadata.py >> "$GITHUB_OUTPUT"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+      - name: Authenticate to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish architecture-aware manifest
+        run: |
+          docker buildx imagetools create \
+            -t "$IMAGE:$VERSION" \
+            "$IMAGE:$VERSION-aarch64" \
+            "$IMAGE:$VERSION-amd64"
+          docker buildx imagetools inspect "$IMAGE:$VERSION"
         env:
           IMAGE: ${{ steps.release.outputs.image }}
           VERSION: ${{ steps.release.outputs.version }}
