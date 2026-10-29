@@ -63,6 +63,48 @@ cloud media delivery fail. The next implementation must solve P2P
 bootstrap/session authentication and the SRT-style media transport; a
 go2rtc reinstall or a new stream alias cannot fix it.
 
+## Rechecked complete PCAP: the iPhone does use cloud P2P setup
+
+The previous local-only analysis missed the control packets to **public
+P2P servers**. Re-examining all UDP conversations in the original privately
+stored PCAP shows the following **observed relative times**:
+
+| Time | Destination / transport | Visible V3 opcode | Interpretation |
+| ---: | --- | --- | --- |
+| +15.494s | public server UDP 6404 | `0x0B02` | P2P_SETUP from iPhone |
+| +15.567s | server response UDP 6404 | `0x0B03` | P2P server reply |
+| +15.572s | W2H LAN UDP 35938 | `0x0C00` | Direct hole-punch setup |
+| +15.604s | W2H reply UDP 35938 | `0x0C01` | Direct hole-punch response |
+| +23.906s | public P2P servers UDP 6406 | `0x0B04` | TRANSFOR_DATA control relay, payload encrypted |
+| +23.979s | server response UDP 6406 | `0x0B05` | Response to relayed control |
+| +26.523s | W2H LAN UDP 35938 | media | First decodable H.264 MPEG-PS media |
+| +34.627s | public P2P servers UDP 6000 | `0x0B04` | Additional relayed control for second view |
+| +37.330s | W2H LAN UDP 35938 | media | Second decodable H.264 MPEG-PS media |
+
+**Conclusion:** Video data was local, but the iPhone did contact external
+P2P servers for connection setup and control. The device appearing "cloud
+offline" in the app does NOT prove its P2P control service is unavailable.
+The original capture does NOT demonstrate full internet-independent streaming.
+
+The published fork already implements this same P2P control family, but
+requires online account login/KMS key retrieval and is validated primarily
+for NVR HEVC + G.711. The BC1 recording was H.264 + AAC in MPEG-PS, which
+requires explicit model-specific framing/codec support. Its existing
+`session.feed()` hardcodes H.265 for video. **A login or UDP setup success
+does not mean the fork already decodes BC1 media**.
+
+### Isolated next test (macOS)
+
+A pinned, on-demand proof-of-concept launcher is in
+[`tools/mac_ezviz_p2p_trial.sh`](../tools/mac_ezviz_p2p_trial.sh).
+It clones a pinned third-party fork, compiles it locally, asks for EZVIZ
+credentials privately on the Mac, and triggers **one** camera source.
+It does not alter the Home Assistant installation. It checks where the
+experiment fails (login, device data, P2P session, or codec). Passwords and
+temporary process logs are deleted on exit. The test config binds the
+private API to loopback only and is NOT intended as a production service.
+Review the third-party source before using account credentials.
+
 ## Existing add-on limitation
 
 The experimental `ezviz_bc1_w2h` hybrid `8658` path uses `pyezvizapi stream local-sdk-dump` over *TCP* 9010/9020 with cloud CAS authorization. This is **not the same as the iPhone's successfully captured UDP P2P flow**. Previously observed CAS errors `1052170`, `1052175` and EZVIZ response `20002` do not get fixed merely by using hybrid auto-fallback. A go2rtc HTTP 500 with zero media bytes proves only that the input could not be opened, not which handshake failed.
