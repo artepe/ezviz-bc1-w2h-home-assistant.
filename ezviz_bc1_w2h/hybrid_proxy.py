@@ -86,6 +86,7 @@ class HybridService:
         self.hub_ip = ""
         self.cas_serial = ""
         self.cooldowns: dict[str, float] = {}
+        self.last_result: dict[str, str] = {}
         service = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -140,13 +141,14 @@ class HybridService:
     def status(self):
         with self.lock:
             mode, hub, cooldowns = self.mode, self.hub_ip, dict(self.cooldowns)
+            results = dict(self.last_result)
         workers = tuple(self.get_workers())
         now = time.monotonic()
         return {
             "mode": mode,
             "lan_configured": bool(hub),
             "cameras": [
-                {"index": w.index, "lan_retry_seconds": max(0, int(cooldowns.get(w.serial, 0) - now))}
+                {"index": w.index, "last_result": results.get(w.serial, "not_tested"), "lan_retry_seconds": max(0, int(cooldowns.get(w.serial, 0) - now))}
                 for w in workers
             ],
             "note": "Proxy listening is not proof of live video. LAN needs CAS authorization.",
@@ -155,6 +157,11 @@ class HybridService:
     def mark_lan_failure(self, serial: str) -> None:
         with self.lock:
             self.cooldowns[serial] = time.monotonic() + LAN_COOLDOWN
+            self.last_result[serial] = "local_unavailable"
+
+    def record_source(self, serial: str, source: str) -> None:
+        with self.lock:
+            self.last_result[serial] = source
 
     def local_command(self, worker, hub: str, cas_serial: str):
         if not Path(worker.token).is_file():
@@ -171,6 +178,7 @@ class HybridService:
         ]
 
     def open_local(self, worker, hub: str, cas_serial: str):
+        process = None
         try:
             cmd = self.local_command(worker, hub, cas_serial)
             if cmd is None:
@@ -186,6 +194,8 @@ class HybridService:
                 return None
             return process, first
         except (OSError, ValueError, subprocess.SubprocessError):
+            if process is not None:
+                terminate(process)
             self.mark_lan_failure(worker.serial)
             return None
 
@@ -219,6 +229,7 @@ class HybridService:
                 transport, first = cloud
                 kind = "cloud"
         if transport is None:
+            self.record_source(worker.serial, "unavailable")
             handler.send_response(503)
             handler.send_header("Content-Type", "text/plain; charset=utf-8")
             handler.send_header("Cache-Control", "no-store")
@@ -230,6 +241,7 @@ class HybridService:
             handler.send_header("Content-Type", "video/mp2t")
             handler.send_header("Cache-Control", "no-store")
             handler.send_header("X-EZVIZ-Source", kind)
+            self.record_source(worker.serial, kind)
             handler.end_headers()
             handler.wfile.write(first)
             if kind == "local":
