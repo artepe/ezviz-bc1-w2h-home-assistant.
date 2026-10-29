@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.13 – Optional LAN-first hybrid video entry point (experimental)
+
+- Add local-first `127.0.0.1:8658/<camera-serial>.ts` MPEG-TS endpoint alongside the previous per-camera `8558+` EZVIZ VTM cloud proxies. Existing go2rtc streams and stored camera credentials remain unchanged.
+- Add `hybrid_mode` (`auto`, `local`, `cloud`), `lan_hub_ip` and `lan_cas_serial` options. The on-demand local-SDK command uses the pinned pyEzvizApi build, authenticated private token and direct LAN ports 9010/9020; failed LAN attempts are rate limited to once per five minutes per camera.
+- In `auto`, attempt cloud fallback if the local stream fails **before** sending any MPEG-TS bytes. In-progress streams are not seamlessly switched and must reconnect after a midstream failure.
+- Add safe `/status` metadata and regression tests. Neither the current iPhone-only UDP protocol nor fully cloud-free operation is implemented; the W2H LAN stream may still fail due to CAS 1052170/1052175 or 20002 errors. Real BC1 hardware validation remains pending.
+
+
+
 ## 0.2.12 - Fix premature VTM socket media timeout and retain safe negotiation result
 
 - Target the observed `MEDIA_READ / VTM_UNREACHABLE`: upstream VTM TCP reader uses `stream.timeout` as **socket read inactivity bound**. Its default 10s raised `DeviceException` even though Analyze cloud permitted a longer first-packet window.
