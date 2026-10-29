@@ -24,7 +24,7 @@ from urllib.request import urlopen
 
 PORT = 8658
 CLI = "/opt/ezviz-venv/bin/pyezvizapi"
-PROBE_SECONDS = 32
+PROBE_SECONDS = 15
 LAN_COOLDOWN = 300
 
 
@@ -36,7 +36,8 @@ def local_ipv4(value: object) -> str:
         address = ipaddress.IPv4Address(value.strip())
     except ipaddress.AddressValueError:
         return ""
-    return str(address) if address.is_private and not address.is_loopback and not address.is_link_local else ""
+    rfc1918 = (ipaddress.IPv4Network("10.0.0.0/8"), ipaddress.IPv4Network("172.16.0.0/12"), ipaddress.IPv4Network("192.168.0.0/16"))
+    return str(address) if any(address in net for net in rfc1918) else ""
 
 
 def lan_client_address(hub_ip: str) -> str:
