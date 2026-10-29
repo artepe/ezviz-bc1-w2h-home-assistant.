@@ -1,7 +1,8 @@
 # Experimental Home Assistant OS Raspberry Pi 5 add-on.
 # Pinned Alpine v3.22 base and Python package source.
 # Workaround for Alpine APKINDEX temporary mirror/network errors seen on Pi 5.
-FROM ghcr.io/home-assistant/aarch64-base:3.22
+ARG BASE_IMAGE=ghcr.io/home-assistant/aarch64-base:3.22
+FROM ${BASE_IMAGE}
 
 ARG BUILD_VERSION=development
 ARG BUILD_ARCH=aarch64
