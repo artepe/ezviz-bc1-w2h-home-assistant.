@@ -1,0 +1,19 @@
+# EZVIZ BC1 / W2H: OPTIONAL AUDIO-ENABLED TEST ALIASES.
+# Merge these keys into the EXISTING streams: mapping in /config/go2rtc.yaml.
+# Do not delete or edit your already-working ezviz_bc1 / ezviz_bc1_2.
+# Do not create a second streams: key in the same YAML file.
+#
+# Before testing, use EZVIZ Cameras -> Test audio for each camera.
+# If the source has no audio, audio=aac cannot create microphone audio.
+# Known original iPhone local P2P recording: H264 + AAC/16000 Hz mono.
+# Cloud VTM proxy may output a different stream or video only.
+#
+# These separate aliases can open additional live sessions; test one at a time.
+# If camera 1 is coming from the separate Legacy app, instead use:
+#   ezviz_bc1_legacy_audio_test:
+#     - "ffmpeg:http://127.0.0.1:8668/YOUR_W2H_SERIAL-YOUR_FIRST_BC1_SERIAL.ts#video=copy#audio=aac"
+streams:
+  ezviz_bc1_audio_test:
+    - "ffmpeg:http://127.0.0.1:8558/YOUR_W2H_SERIAL-YOUR_FIRST_BC1_SERIAL.ts#video=copy#audio=aac"
+  ezviz_bc1_2_audio_test:
+    - "ffmpeg:http://127.0.0.1:8559/YOUR_W2H_SERIAL-YOUR_SECOND_BC1_SERIAL.ts#video=copy#audio=aac"
