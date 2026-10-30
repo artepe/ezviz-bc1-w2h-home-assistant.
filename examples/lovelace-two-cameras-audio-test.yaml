@@ -1,0 +1,25 @@
+# EXPERIMENTAL: two EZVIZ BC1 cameras stacked vertically, with audio.
+# First add aliases from examples/go2rtc-two-cameras-audio-test.yaml
+# to the existing /config/go2rtc.yaml, then restart go2rtc.
+# Both the video and the audio path must work; Test audio must identify
+# a track in the EZVIZ proxy itself before go2rtc can play it.
+# To preserve battery and avoid two concurrent camera sessions, first
+# close any other EZVIZ players and test one camera at a time.
+# Browsers may require tapping to unmute: muted: true permits autoplay.
+# If the audio test fails, use examples/lovelace-two-cameras.yaml instead.
+type: vertical-stack
+cards:
+  - type: custom:webrtc-camera
+    title: "EZVIZ BC1 | Kamera 1 (äänen testi)"
+    url: ezviz_bc1_audio_test
+    mode: mse
+    media: video,audio
+    ui: true
+    muted: true
+  - type: custom:webrtc-camera
+    title: "EZVIZ BC1 | Kamera 2 (äänen testi)"
+    url: ezviz_bc1_2_audio_test
+    mode: mse
+    media: video,audio
+    ui: true
+    muted: true
