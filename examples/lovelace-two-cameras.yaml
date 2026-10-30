@@ -1,20 +1,24 @@
-# Requires the existing HACS WebRTC Camera integration connected to go2rtc.
-# Configure and test both streams in go2rtc before adding this manual card.
-# Continuous viewing increases battery use; live two-camera testing is pending.
-# Video-only defaults. Separate audio experiments are described in docs/AUDIO.md.
+# EZVIZ BC1 / W2H: two full-width, vertically stacked live cameras.
+# Add as ONE Manual Lovelace card, not as two Grid items.
+# Existing go2rtc names from examples/go2rtc-two-cameras.yaml.
+# If camera 1 is played through the isolated legacy addon, change its
+# url to ezviz_bc1_legacy. Do not change the working go2rtc sources.
+# This stable example intentionally requests VIDEO ONLY. For audio
+# experiments use examples/lovelace-two-cameras-audio-test.yaml.
+# WebRTC Camera custom integration (HACS AlexxIT/WebRTC) required.
 type: vertical-stack
 cards:
   - type: custom:webrtc-camera
+    title: "EZVIZ BC1 | Kamera 1"
     url: ezviz_bc1
     mode: mse
     media: video
     ui: true
     muted: true
-    title: EZVIZ kamera 1
   - type: custom:webrtc-camera
+    title: "EZVIZ BC1 | Kamera 2"
     url: ezviz_bc1_2
     mode: mse
     media: video
     ui: true
     muted: true
-    title: EZVIZ kamera 2
