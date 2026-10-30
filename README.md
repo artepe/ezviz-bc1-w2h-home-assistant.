@@ -1,5 +1,14 @@
 # EZVIZ BC1 + W2H → Home Assistant Live Streaming
 
+> **Two vertically stacked EZVIZ BC1 cards (2026-10-30):**
+> [Video-only Lovelace example](examples/lovelace-two-cameras.yaml) ·
+> [Isolated audio go2rtc aliases](examples/go2rtc-two-cameras-audio-test.yaml) ·
+> [Stacked audio test cards](examples/lovelace-two-cameras-audio-test.yaml) ·
+> [Audio diagnosis and limitations](docs/AUDIO.md).
+> The original iPhone local P2P capture yielded AAC 16 kHz mono,
+> but the current cloud-based proxy has **not** been verified to emit
+> audio. Keep the stable video sources untouched while testing.
+
 > **Experimental hybrid v0.2.13:** [LAN-first with EZVIZ cloud fallback](docs/EZVIZ_BC1_HYBRID.md). New on-demand port `8658` is separate from the current cloud-only ports `8558/8559`. This does **not** yet prove independent LAN playback on BC1/W2H; the local SDK may fail on cloud CAS authorization. Existing streams remain unchanged.
 
 > **New experimental Home Assistant camera integration:** [EZVIZ BC1 Lab v0.1.0 – installation and diagnostics](docs/EZVIZ_BC1_LAB.md). It connects to an already-running Mac VTM video proxy and does not remove the existing Raspberry Pi add-on. Video playback is not yet verified.
