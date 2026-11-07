@@ -13,7 +13,7 @@ from check_dev_manifest import check
 class ReleaseTests(unittest.TestCase):
     def test_supervisor_and_ci_read_same_image_and_version(self):
         release = metadata(ROOT, 'ezviz_bc1_w2h_dev')
-        self.assertEqual(release, {'version': '0.3.1', 'image': 'ghcr.io/artepe/ezviz-bc1-w2h'})
+        self.assertEqual(release, {'version': '0.3.2', 'image': 'ghcr.io/artepe/ezviz-bc1-w2h'})
         stable = metadata(ROOT)
         self.assertNotEqual(stable['version'], release['version'])
         config = (ROOT / 'ezviz_bc1_w2h_dev/config.yaml').read_text()
