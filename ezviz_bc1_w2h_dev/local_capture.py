@@ -42,7 +42,7 @@ def read_credentials(path: Path, serial: str):
                 or not all(isinstance(cas.get(k), str) and cas[k] for k in ("key", "operation_code"))):
             raise ValueError
         return host, channel
-    except (OSError, ValueError, TypeError, KeyError):
+    except (OSError, ValueError, TypeError, KeyError, UnicodeError):
         raise ValueError("Local credentials missing or invalid; cloud access is disabled.") from None
 
 
