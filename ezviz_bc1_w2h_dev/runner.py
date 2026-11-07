@@ -514,6 +514,7 @@ class Runtime:
             cameras = self.cameras
             message = self.message
             processes = {worker.port: worker.process is not None and worker.process.poll() is None for worker in WORKERS}
+            mode = self.mode
         states = []
         for camera in cameras:
             running = processes.get(camera.port, False)
@@ -524,10 +525,21 @@ class Runtime:
                         listening = True
                 except OSError:
                     pass
-            states.append({**camera.as_dict(), "stream": camera.stream,
-                           "status": "ready" if listening else "starting" if running else "waiting",
-                           **camera.snippets()})
-        return {"message": message, "connection_mode": self.mode, "cameras": states}
+            state = {**camera.as_dict(), "stream": camera.stream,
+                     "status": "ready" if listening else "starting" if running else "waiting",
+                     **camera.snippets()}
+            if mode == "local_only":
+                # Report only safe, static file validation. Never return the
+                # key, operation code, media key or credential contents.
+                from local_capture import read_credentials
+                try:
+                    read_credentials(Path(f"/data/local_camera_{camera.index}.json"), camera.serial)
+                except ValueError:
+                    state["local_credentials"] = "missing_or_invalid"
+                else:
+                    state["local_credentials"] = "format_valid"
+            states.append(state)
+        return {"message": message, "connection_mode": mode, "cameras": states}
 
 
 def main() -> int:
