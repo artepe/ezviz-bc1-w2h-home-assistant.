@@ -1,0 +1,63 @@
+"""Bounded audio-track and packet inspection without exposing source URLs."""
+
+from __future__ import annotations
+
+import json
+import re
+import subprocess
+
+
+def inspect_audio(source: str) -> dict[str, object]:
+    """Count demuxed packets; this does not prove decoded microphone sound."""
+    try:
+        result = subprocess.run(
+            [
+                "ffprobe", "-v", "error", "-analyzeduration", "8000000",
+                "-probesize", "4000000", "-rw_timeout", "15000000",
+                "-read_intervals", "%+3", "-count_packets",
+                "-show_entries", "stream=codec_type,codec_name,sample_rate,channels,nb_read_packets",
+                "-of", "json", source,
+            ],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            timeout=22,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "audio": None, "message": "Audio test timed out. Close live views, check the camera in the EZVIZ app, and try again."}
+    except OSError:
+        return {"ok": False, "audio": None, "message": "Could not start the audio test. Check the app log and installed version."}
+
+    try:
+        if result.returncode != 0:
+            raise ValueError
+        data = json.loads(result.stdout)
+        streams = data["streams"]
+        if not isinstance(streams, list) or not all(isinstance(stream, dict) for stream in streams):
+            raise ValueError
+    except (ValueError, KeyError, TypeError, UnicodeError):
+        return {"ok": False, "audio": None, "message": "Could not inspect the camera stream. Check Test video and the EZVIZ cloud connection, then try again."}
+
+    audio = next((stream for stream in streams if stream.get("codec_type") == "audio"), None)
+    if audio is None:
+        if any(stream.get("codec_type") == "video" for stream in streams):
+            return {"ok": False, "audio": False, "message": "No audio track detected: the camera proxy supplied video only during this test. Check microphone/audio recording in the EZVIZ app. If it is enabled, the upstream cloud format may not support audio export; changing the Lovelace card cannot add a missing track."}
+        return {"ok": False, "audio": None, "message": "No video or audio tracks were detected. Check Test video and the camera connection."}
+
+    codec = audio.get("codec_name", "")
+    label = codec.upper() if isinstance(codec, str) and re.fullmatch(r"[a-z0-9_]{1,32}", codec) else "unknown codec"
+    details = [label]
+    rate = str(audio.get("sample_rate", ""))
+    if rate.isdigit() and 0 < int(rate) <= 384000:
+        details.append(f"{int(rate)} Hz")
+    channels = audio.get("channels")
+    if isinstance(channels, int) and not isinstance(channels, bool) and 0 < channels <= 32:
+        details.append(f"{channels} channel(s)")
+    count = audio.get("nb_read_packets")
+    # FFprobe encodes counts as decimal strings; reject arbitrary metadata.
+    count_text = str(count)
+    packets_received = bool(re.fullmatch(r"[0-9]{1,9}", count_text)) and int(count_text) > 0
+    if not packets_received:
+        return {"ok": False, "audio": True, "audio_packets": False, "message": f"Audio track advertised by the camera proxy: {', '.join(details)}, but no audio packets were confirmed during this bounded test. This is inconclusive: close other viewers and retry. Changing the Lovelace card cannot repair missing source packets."}
+    return {"ok": True, "audio": True, "audio_packets": True, "message": f"Audio track received from the camera proxy: {', '.join(details)}; audio packets received. You can try Experimental audio test below using its separate stream and temporary card. Keep the working video settings. This checks demuxed packets, not microphone volume, successful audio decoding or browser playback."}

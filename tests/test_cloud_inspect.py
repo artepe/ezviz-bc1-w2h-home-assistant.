@@ -1,3 +1,4 @@
+import os
 """Cloud diagnostics must start the actual media stream without exporting bodies."""
 
 import importlib
@@ -8,7 +9,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "ezviz_bc1_w2h"))
+sys.path.insert(0, str(ROOT / os.environ.get("EZVIZ_TEST_ADDON", "ezviz_bc1_w2h")))
 from cloud_inspect import collect_packet_metadata, classify_error, execute, report_error, CloudPhaseError
 
 

@@ -1,3 +1,4 @@
+import os
 """Distinguish missing audio, transport failures and actual AAC in MPEG-TS."""
 
 import json
@@ -10,7 +11,7 @@ import unittest
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "ezviz_bc1_w2h"))
+sys.path.insert(0, str(ROOT / os.environ.get("EZVIZ_TEST_ADDON", "ezviz_bc1_w2h")))
 
 from media_probe import inspect_audio
 
@@ -20,7 +21,7 @@ class AudioProbeTests(unittest.TestCase):
         return subprocess.CompletedProcess([], 0, json.dumps({"streams": streams}).encode())
 
     def test_audio_metadata_is_reported_without_source_or_stderr(self):
-        completed = self.result([{"codec_type": "audio", "codec_name": "aac", "sample_rate": "16000", "channels": 1}])
+        completed = self.result([{"codec_type": "audio", "codec_name": "aac", "sample_rate": "16000", "channels": 1, "nb_read_packets": "47"}])
         with patch("media_probe.subprocess.run", return_value=completed) as run:
             result = inspect_audio("http://127.0.0.1:8558/HUB001-CAM001.ts")
         self.assertTrue(result["audio"])
