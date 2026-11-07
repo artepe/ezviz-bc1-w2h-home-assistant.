@@ -77,7 +77,12 @@ function render() {
     const labels = {ready: "Proxy ready", starting: "Starting", waiting: "Waiting"};
     head.append(symbol, title, element("span", `badge ${camera.status}`, labels[camera.status] || "Waiting"));
     const meta = element("div", "card-meta");
-    for (const [label, value] of [["Dashboard stream", camera.stream], ["Local port", String(camera.port)]]) {
+    const statusDetails = [["Dashboard stream", camera.stream], ["Local port", String(camera.port)]];
+    if (mode === "local_only") {
+      statusDetails.push(["LAN credentials", camera.local_credentials === "format_valid"
+        ? "File format valid (video not verified)" : "Missing or invalid"]);
+    }
+    for (const [label, value] of statusDetails) {
       const item = element("div", "meta-item");
       item.append(element("span", "", label), element("code", "", value)); meta.append(item);
     }
