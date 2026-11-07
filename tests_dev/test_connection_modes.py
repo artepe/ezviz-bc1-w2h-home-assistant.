@@ -137,6 +137,9 @@ class LocalCaptureTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 local_capture.read_credentials(path, data["serial"])
             path.chmod(0o600)
+            path.write_bytes(b"\xffinvalid-utf8-key")
+            with self.assertRaises(ValueError):
+                local_capture.read_credentials(path, data["serial"])
             invalid = [
                 {**data, "channel": None}, {**data, "channel": True},
                 {**data, "serial": "OTHER-CAMERA"}, {**data, "cas": {}},
