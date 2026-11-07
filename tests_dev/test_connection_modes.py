@@ -75,6 +75,29 @@ class ModeTests(unittest.TestCase):
         self.assertEqual(runner.WORKERS, [])
         self.assertEqual(runtime.mode, "invalid")
 
+    def test_snapshot_reports_local_file_status_without_keys_or_claiming_live_video(self):
+        runtime = runner.Runtime()
+        runtime.cameras = runner.parse_cameras({"camera_serial": "HUB001-CAM001"})
+        runtime.mode = "local_only"
+        with patch.object(runner, "WORKERS", []), \
+             patch("local_capture.read_credentials", side_effect=ValueError("PRIVATE-CAS-SECRET")):
+            state = runtime.snapshot()
+        camera = state["cameras"][0]
+        self.assertEqual(camera["local_credentials"], "missing_or_invalid")
+        self.assertNotIn("PRIVATE-CAS-SECRET", json.dumps(state))
+        self.assertNotIn("media_key", json.dumps(state))
+        with patch.object(runner, "WORKERS", []), \
+             patch("local_capture.read_credentials", return_value=("192.168.10.140", 3)):
+            state = runtime.snapshot()
+        self.assertEqual(state["cameras"][0]["local_credentials"], "format_valid")
+        self.assertNotIn("video_verified", state["cameras"][0])
+
+        runtime.mode = "cloud"
+        with patch.object(runner, "WORKERS", []), \
+             patch("local_capture.read_credentials", side_effect=AssertionError("do not read")):
+            cloud_state = runtime.snapshot()
+        self.assertNotIn("local_credentials", cloud_state["cameras"][0])
+
     def test_private_settings_save_preserves_account_and_cameras(self):
         client = SupervisorClient("synthetic")
         original = {"password": "!secret ezviz_password", "camera_serial": "HUB001-CAM001"}
