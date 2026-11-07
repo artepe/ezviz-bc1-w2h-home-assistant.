@@ -534,7 +534,7 @@ class Runtime:
                 from local_capture import read_credentials
                 try:
                     read_credentials(Path(f"/data/local_camera_{camera.index}.json"), camera.serial)
-                except ValueError:
+                except (ValueError, UnicodeError):
                     state["local_credentials"] = "missing_or_invalid"
                 else:
                     state["local_credentials"] = "format_valid"
