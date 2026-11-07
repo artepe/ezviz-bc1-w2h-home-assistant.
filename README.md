@@ -1,5 +1,11 @@
 # EZVIZ BC1 + W2H → Home Assistant Live Streaming
 
+> **DEV 0.3.2 (PR #12):** The separate `ezviz_bc1_w2h_dev` app has an
+> explicit no-cloud-fallback mode and now shows safe, per-camera local SDK
+> credential file status. This is **not evidence of a working offline stream**.
+> See [Finnish offline/audio test guide](docs/DEV_LOCAL_AUDIO_TEST_FI.md).
+> The existing cloud streaming add-on remains unchanged.
+
 > **Two vertically stacked EZVIZ BC1 cards (2026-10-30):**
 > [Video-only Lovelace example](examples/lovelace-two-cameras.yaml) ·
 > [Isolated audio go2rtc aliases](examples/go2rtc-two-cameras-audio-test.yaml) ·
