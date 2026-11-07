@@ -33,3 +33,19 @@ The GitHub Actions job **successfully built and published** `ghcr.io/artepe/ezvi
 **Important:** GitHub Container Registry packages may start **Private**, even when this code repository is Public. To allow Home Assistant OS to pull the image, open **GitHub → your profile → Packages → ezviz-bc1-w2h → Package settings → Change visibility → Public**. This publishes the compiled image, **not** your EZVIZ account information.
 
 Run `ha store reload` and check `version_latest: 0.2.3` before updating. Wait for the v0.2.3 image build to succeed first. If the image pull fails with access denied, check the GHCR package visibility. If it fails for DNS/connectivity, inspect the Supervisor logs.
+
+
+## DEV 0.3.2: paikalliset tunnistetiedot ja äänen testaus
+
+Käyttöliittymä näyttää `local_only`-tilassa kamerakohtaisen **LAN credentials**
+-tilan: `Missing or invalid` tai `File format valid (video not verified)`.
+Tämä on vain turvallinen tunnistetiedoston rakennetarkistus, ei vahvistus
+pilvettömästä videosta. Pilveen ei vaihdeta automaattisesti.
+
+**Test audio** tarkistaa audiopaketit. Ääni ei ole vahvistettu toimivaksi
+BC1-kameroilla, vaikka testissä löytyisi ääniraita. Säilytä toimivat
+videokortit ja testaa ääntä erillisillä aliasvirroilla.
+
+Katso [yksityiskohtainen suomenkielinen local/audio-testausohje](../docs/DEV_LOCAL_AUDIO_TEST_FI.md).
+Älä julkaise `ha apps info --raw-json` -tulosteita tai salaisia
+`/data`-tiedostoja; ne voivat sisältää salasanoja tai avaimia.
