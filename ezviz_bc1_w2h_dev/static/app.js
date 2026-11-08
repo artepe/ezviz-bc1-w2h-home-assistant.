@@ -274,7 +274,7 @@ byId("credentials-form").addEventListener("submit", async event => {
     } else {
       Object.assign(payload, {username: byId("credentials-user").value, password: byId("credentials-password").value,
         sms_code: byId("credentials-sms").value, api_url: byId("credentials-region").value,
-        cas_serial: byId("credentials-cas").value, allow_cloud: byId("credentials-consent").checked});
+        use_known_w2h: byId("credentials-known-w2h").checked, cas_serial: byId("credentials-cas").value, allow_cloud: byId("credentials-consent").checked});
     }
     save.textContent = "Saving (up to 60 seconds)...";
     const result = await request(`api/cameras/${credentialCamera.port}/local-credentials`, "POST", payload);

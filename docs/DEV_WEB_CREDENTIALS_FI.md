@@ -152,3 +152,39 @@ osoita väärää DevSerial-tunnistetta, tilin oikeuspuutetta tai laitekohtaista
 estoperustetta. Koodin tarkkaa merkitystä ja W2H/BC1-mäppäystä ei ole
 vahvistettu. Uusi oikean laitteen ajo tarvitaan nykyisen estävän vaiheen
 vahvistamiseksi. Muutokset eivät ota paikalliseen laitteeseen yhteyttä.
+
+## DEV 0.3.7: tunnettu W2H LAN endpoint
+
+Open Web UI → Local credentials → Fetch from EZVIZ: valitse erikseen
+**Use known W2H LAN endpoint** ja hyväksy kertaluonteinen pilvikirjautuminen,
+P2P-rekisteröinti sekä CAS-haku. Endpoint on kiinteä 192.168.10.140,
+komentoportti 9010 ja stream-portti 9020. Valinta ei ole oletuksena käytössä.
+Se ohittaa LAN-metatietohaun kokonaan; ulkoisia endpoint-osoitteita ei käytetä.
+
+Ilman ohitusta `lan_metadata` erottaa `CAMERA_RECORD_MISSING`,
+`CONNECTION_MISSING` (myös tyhjä CONNECTION), `LOCAL_IP_MISSING`,
+`LAN_ENDPOINT_INVALID` ja `LAN_METADATA_REQUEST_FAILED`.
+Aiempi exit 20 ei yksin todista, mikä näistä puuttui. Älä päättele sitä
+vanhasta virheilmoituksesta: aja ilman ohitusta saadaksesi tarkan luokituksen.
+
+Ohituksen jälkeen seuraava vaihe on `p2p_registration` (exit 21,
+`P2P_REGISTRATION_FAILED`), sitten `cas_lookup` (exit 22,
+`CAS_REQUEST_FAILED` tai `CAS_SESSION_INVALID`). Numeerinen CAS Result ja
+HTTP-status näytetään, jos saatavilla; vastauksia, avaimia ja tokeneita ei tulosteta.
+
+CAS-identiteetin evidenssi: lukitun SDK:n commit
+`a38ba757a3686cb412cc5029225e2608cdbccc4b`,
+`pyezvizapi/_local_stream.py:get_local_sdk_stream_credentials_from_client`
+kutsuu `cas_get_encryption(cas_serial or serial)`.
+`pyezvizapi/cas.py:cas_get_encryption` välittää annetun arvon DevSerialiksi.
+SDK:n geneeriset CAM123-testit eivät varmista W2H:n/alilaitteen tunnistetta.
+Tässä ei pilkota `G23915155-G28068598`-tunnistetta eikä kokeilla automaattisesti
+sen osia. Oletus käyttää valittua kokonaista kameratunnistetta SDK:n mukaisesti;
+Observed CAS serial -kenttään saa antaa vain erikseen havaitun arvon.
+W2H:n vaatima DevSerial jää varmentamatta, kunnes saadaan laitekohtainen
+CAS-vastaus tai valtuutetun asiakassovelluksen havainto.
+
+Kameran 1 kanavaehdokas 1 ei ole paikallisesti varmennettu. Tunnistetietojen
+onnistunut tallennus kertoo vain FORMAT_VALID-tilan. Todista autentikointi,
+kanava ja streami vastaanottamalla video. Pilvivideon, token-tiedostojen ja
+go2rtc:n toteutuksia ei muuteta tässä julkaisussa.

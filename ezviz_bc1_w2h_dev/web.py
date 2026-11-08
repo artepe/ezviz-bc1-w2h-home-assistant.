@@ -203,6 +203,9 @@ class CameraService:
                         raise ValueError('Enter a numeric verification code.')
                     if fields['cas_serial']:
                         validate_serial(fields['cas_serial'])
+                    if type(payload.get('use_known_w2h', False)) is not bool:
+                        raise ValueError('Invalid known W2H endpoint consent.')
+                    fields['use_known_w2h'] = payload.get('use_known_w2h', False)
                     fields['serial'] = camera.serial
                     try:
                         result = subprocess.run(

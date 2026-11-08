@@ -120,7 +120,7 @@ class WebCredentialTests(unittest.TestCase):
 
     def test_acquisition_requires_explicit_consent_and_fixed_region(self):
         with patch('web.subprocess.run') as run:
-            for fields in ({'allow_cloud': False}, {'api_url': 'attacker.example'}, {'sms_code': 'bad'}):
+            for fields in ({'allow_cloud': False}, {'api_url': 'attacker.example'}, {'sms_code': 'bad'}, {'use_known_w2h': 'true'}, {'use_known_w2h': 1}):
                 self.assertEqual(self.call(self.cloud_payload() | fields)[0], 400)
             run.assert_not_called()
         self.server.service.credential_lock.acquire()
@@ -128,6 +128,16 @@ class WebCredentialTests(unittest.TestCase):
             self.assertEqual(self.call()[0], 400)
         finally:
             self.server.service.credential_lock.release()
+
+    def test_known_endpoint_consent_is_explicit_and_forwarded(self):
+        for value in (False, True):
+            with patch('web.subprocess.run', return_value=SimpleNamespace(returncode=21,
+                    stdout=b'{"stage":"p2p_registration","error_code":"P2P_REGISTRATION_FAILED"}')) as run:
+                status, body = self.call(self.cloud_payload() | {'use_known_w2h': value})
+            self.assertEqual(status, 200)
+            self.assertIs(json.loads(run.call_args.kwargs['input'])['use_known_w2h'], value)
+            self.assertEqual(body['error_code'], 'P2P_REGISTRATION_FAILED')
+        self.assertFalse(list(self.root.iterdir()))
 
     def test_acquisition_private_stdin_and_no_cloud_token_file_changes(self):
         token = self.root / 'ezviz_token.json'

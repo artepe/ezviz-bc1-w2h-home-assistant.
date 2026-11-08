@@ -1,3 +1,9 @@
+## 0.3.7
+
+- Add explicit known W2H LAN endpoint consent (192.168.10.140:9010/9020), bypassing missing metadata.
+- Distinguish missing camera record, CONNECTION and localIp; reject WAN LAN endpoints.
+- Keep bounded P2P/CAS diagnostics and explicit observed CAS identity override; W2H identity remains unverified.
+
 ## 0.3.6
 
 - Separate LAN metadata, P2P registration and CAS acquisition failures; show only validated stage, numeric CAS Result and missing Session status.

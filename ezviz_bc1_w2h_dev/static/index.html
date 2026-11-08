@@ -81,6 +81,8 @@
         <label for="credentials-user">EZVIZ account</label><input id="credentials-user" autocomplete="off">
         <label for="credentials-password">EZVIZ password</label><input id="credentials-password" type="password" autocomplete="new-password">
         <label for="credentials-sms">Verification code (if required)</label><input id="credentials-sms" type="password" inputmode="numeric" autocomplete="off">
+        <label><input id="credentials-known-w2h" type="checkbox"> Use known W2H LAN endpoint</label>
+        <p>I approve 192.168.10.140, command port 9010 and stream port 9020 instead of LAN metadata lookup. No WAN endpoint is used. Channel 1 is only a candidate until locally verified.</p>
         <label for="credentials-cas">Observed CAS serial (optional)</label><input id="credentials-cas" autocomplete="off">
         <p>Leave CAS serial empty to use the selected full camera ID. Override only from observed device information; the W2H CAS mapping is not verified.</p>
         <label><input id="credentials-consent" type="checkbox"> I authorize this one-time cloud login, P2P registration and CAS lookup.</label>
