@@ -1,3 +1,10 @@
+## 0.3.8
+
+- Preserve the saved CAS encrypt_type instead of silently overriding it with the SDK CLI default.
+- Add Camera 1 Deep Local Diagnostics: one bounded LAN-only session using the saved private credentials and the existing viewer lock, with guaranteed process cleanup.
+- Separate completed command sends, response IDs, explicit acceptance, per-port TCP connections, media frames, parsed MPEG-TS, decoded H.264 and observed audio packets. Unknown evidence stays NOT_TESTED.
+- No device-specific CAS/channel/media-encryption qualification is claimed; no credentials are refreshed or replaced.
+
 ## 0.3.7
 
 - Add explicit known W2H LAN endpoint consent (192.168.10.140:9010/9020), bypassing missing metadata.

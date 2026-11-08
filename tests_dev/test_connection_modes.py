@@ -172,6 +172,8 @@ class LocalCaptureTests(unittest.TestCase):
         sdk = Mock()
         sdk.main.return_value = 0
         with patch.object(local_capture, "read_credentials", return_value=("192.168.10.140", 3)), \
+             patch.object(local_capture, "credential_encrypt_type", return_value=3), \
+             patch.object(local_capture.shutil, "which", return_value="/usr/bin/ffmpeg"), \
              patch.object(local_capture, "install_lan_guard"), \
              patch.object(local_capture.logging, "disable"), \
              patch.dict(sys.modules, {"pyezvizapi": Mock(), "pyezvizapi.__main__": sdk}):

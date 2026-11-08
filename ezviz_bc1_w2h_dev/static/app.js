@@ -108,10 +108,25 @@ function render() {
     inspect.disabled = busy || mode !== "cloud";
     actions.append(test, audioTest, inspect, restart, button("Edit", "button quiet", () => openCamera(camera)), button("Remove", "button quiet", () => openRemove(camera)));
     if (mode === "local_only") actions.append(button("Local credentials", "button secondary", () => openCredentials(camera)));
+    if (mode === "local_only" && camera.port === 8558) {
+      const deep = button("Deep Local Diagnostics", "button secondary", async () => {
+        testing.add(camera.port); render();
+        try { results.set(camera.port, await request(`api/cameras/${camera.port}/deep-local`, "POST", {})); }
+        catch (_) { results.set(camera.port, {ok: false, message: "Local diagnostics unavailable."}); }
+        finally { testing.delete(camera.port); render(); }
+      });
+      deep.disabled = busy;
+      actions.append(deep);
+    }
     card.append(head, meta, actions);
     if (results.has(camera.port)) {
       const result = results.get(camera.port);
       card.append(element("div", `test-result ${result.ok ? "good" : "bad"}`, result.message));
+      if (Array.isArray(result.stages)) {
+        const rows = element("ul", "diagnostic-stages");
+        for (const row of result.stages) rows.append(element("li", "", `${row.label}: ${row.status}`));
+        card.append(rows);
+      }
     }
     const details = element("details", "connection");
     details.open = expanded.has(camera.port);

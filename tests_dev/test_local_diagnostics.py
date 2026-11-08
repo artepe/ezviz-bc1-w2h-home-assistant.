@@ -88,7 +88,9 @@ class DiagnosticTests(unittest.TestCase):
             original = sdk._handle_local_sdk_stream_dump
             sdk.main = Mock(side_effect=lambda args: sdk._handle_local_sdk_stream_dump(args))
             with patch.object(local_capture, "read_credentials", return_value=("192.168.10.140", 2)), \
-                 patch.object(local_capture, "install_lan_guard"), \
+                 patch.object(local_capture, "credential_encrypt_type", return_value=3), \
+             patch.object(local_capture.shutil, "which", return_value="/usr/bin/ffmpeg"), \
+             patch.object(local_capture, "install_lan_guard"), \
                  patch.object(local_capture, "observe_sdk"), \
                  patch.dict(sys.modules, {"pyezvizapi": SimpleNamespace(hcnetsdk=Mock())}), \
                  patch.object(local_capture.logging, "disable"), \
@@ -125,13 +127,13 @@ class DiagnosticTests(unittest.TestCase):
 class EvidenceTests(unittest.TestCase):
     def test_classification_requires_stage_evidence(self):
         from local_diagnostics import failure_code
-        self.assertEqual(failure_code(set(), b'', None, True), 'UNKNOWN')
-        self.assertEqual(failure_code({'TCP_CONNECTED'}, b'', 22, True), 'UNKNOWN')
+        self.assertEqual(failure_code(set(), b'', None, True), 'STARTUP_TIMEOUT')
+        self.assertEqual(failure_code({'TCP_CONNECTED'}, b'', 22, True), 'STARTUP_TIMEOUT')
         self.assertEqual(failure_code({'TCP_CONNECT_FAILED'}, b'', None), 'LAN_CONNECT_FAILED')
         stages = {'PREVIEW_ACCEPTED', 'STREAM_SETUP'}
         self.assertEqual(failure_code(stages, b'', None, True), 'MEDIA_TIMEOUT')
         self.assertEqual(failure_code(stages, b'', 23), 'UNKNOWN')
-        self.assertEqual(failure_code(stages | {'MEDIA_FRAME'}, b'', None, True), 'UNKNOWN')
+        self.assertEqual(failure_code(stages | {'MEDIA_FRAME'}, b'', None, True), 'STARTUP_TIMEOUT')
         self.assertEqual(failure_code(set(), b'garbage', 0), 'MPEGTS_INVALID')
         # Missing Session or an undocumented Result is never CAS_AUTH_FAILED.
         self.assertEqual(failure_code({'TCP_CONNECTED'}, b'', 21), 'UNKNOWN')
@@ -163,7 +165,7 @@ class EvidenceTests(unittest.TestCase):
                 return self.response
             def read_stream_frame_after_prefix(self):
                 return object()
-        sdk = SimpleNamespace(EzvizLocalSdkClient=Client, parse_ezviz_local_sdk_xml_fields=lambda r: r.fields)
+        sdk = SimpleNamespace(EzvizLocalSdkClient=Client, parse_ezviz_local_sdk_xml_fields=lambda r: r.fields, _send_all_with_timeout=lambda *a, **kw: None)
         original = Client.send_encrypted_command
         restore = local_capture.observe_sdk(sdk)
         try:
@@ -171,13 +173,13 @@ class EvidenceTests(unittest.TestCase):
             with patch.object(local_capture, 'emit_event') as event:
                 client.response = SimpleNamespace(response=SimpleNamespace(header=SimpleNamespace(command=0x2012), fields={'Result': 'PRIVATE'}))
                 client.send_encrypted_command(0x2011)
-                event.assert_not_called()
+                self.assertEqual([c.args[0] for c in event.call_args_list], ['PREVIEW_REQUESTED', 'PREVIEW_RESPONSE'])
                 client.response.response.fields = {'Result': '0', 'Session': '123'}
                 client.send_encrypted_command(0x2011)
                 event.assert_called_with('PREVIEW_ACCEPTED')
                 client.response.response.header.command = 0x3106
                 client.send_encrypted_command(0x3105)
-                event.assert_called_with('STREAM_SETUP')
+                event.assert_called_with('STREAM_SETUP_ACCEPTED')
                 client.read_stream_frame_after_prefix()
                 event.assert_called_with('MEDIA_FRAME')
                 self.assertNotIn('PRIVATE', str(event.call_args_list))
@@ -222,7 +224,8 @@ class EvidenceTests(unittest.TestCase):
         process.wait(timeout=3)
         process.stdout.close()
         self.assertEqual(len(first), 376)
-        self.assertTrue(all(service.evidence[worker.serial].values()))
+        self.assertTrue(all(service.evidence[worker.serial][key] for key in ('tcp_connected', 'preview_accepted', 'stream_setup', 'media_frame_received', 'mpegts_received')))
+        self.assertFalse(service.evidence[worker.serial]['sdk_ready'])
 
 
 if __name__ == "__main__":

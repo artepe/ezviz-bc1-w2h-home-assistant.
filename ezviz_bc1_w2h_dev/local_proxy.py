@@ -74,7 +74,7 @@ class LocalService(HybridService):
         except ValueError:
             reason = "INVALID_CREDENTIALS"
         except (OSError, subprocess.SubprocessError):
-            reason = "UNKNOWN"
+            reason = "PROCESS_START_FAILED" if process is None else "UNKNOWN"
         finally:
             self.record_evidence(worker.serial, read_events(diagnostic), valid_ts)
             diagnostic.close()
@@ -86,11 +86,32 @@ class LocalService(HybridService):
         self.record_source(worker.serial, reason)
         return None
 
+    def deep_diagnostics(self):
+        from local_deep import capture_once
+        from local_diagnostics import deep_result
+        if self.worker.index != 1:
+            return deep_result(set(), 'CAMERA_NOT_SELECTED')
+        if not self.viewer.acquire(blocking=False):
+            return deep_result(set(), 'LOCAL_BUSY')
+        try:
+            with self.lock:
+                if self.stopping:
+                    return deep_result(set(), 'STOPPING')
+            return capture_once(self)
+        finally:
+            self.viewer.release()
+
     def record_evidence(self, serial, events, mpegts):
         with self.lock:
             if not hasattr(self, "evidence"):
                 self.evidence = {}
             self.evidence[serial] = {
+                "process_started": "PROCESS_STARTED" in events,
+                "credentials_read": "CREDENTIALS_READ" in events,
+                "sdk_ready": "SDK_READY" in events,
+                "handler_started": "HANDLER_STARTED" in events,
+                "preview_requested": "PREVIEW_REQUESTED" in events,
+                "stream_setup_requested": "STREAM_SETUP_REQUESTED" in events,
                 "tcp_connected": "TCP_CONNECTED" in events,
                 "preview_accepted": "PREVIEW_ACCEPTED" in events,
                 "stream_setup": "STREAM_SETUP" in events,

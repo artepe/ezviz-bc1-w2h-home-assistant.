@@ -322,6 +322,37 @@ class CameraService:
                 return {"ok": False, "message": "The local proxy connection failed or timed out within 35 seconds. W2H CAS authorization, channel mapping and video remain unconfirmed. Cloud access is disabled."}
             return {"ok": False, "message": "No video data arrived within 35 seconds. Check that the W2H base station is online in the EZVIZ app and its network cable is connected. Wake the camera in the app; when connectivity returns, use Restart proxy and test again."}
 
+    def deep_local(self, port):
+        if self.runtime.mode != 'local_only':
+            raise ValueError('Select Local only before running this test.')
+        with self.client.lock:
+            cameras = parse_cameras(self.client.raw_options())
+        camera = next((c for c in cameras if c.port == port), None)
+        if camera is None or camera.index != 1:
+            raise ValueError('Deep Local Diagnostics is available for Camera 1 only.')
+        class NoRedirect(HTTPRedirectHandler):
+            def redirect_request(self, *args, **kwargs):
+                return None
+        try:
+            request = Request(f'http://127.0.0.1:{camera.port}/deep-local', data=b'', method='POST')
+            with build_opener(NoRedirect).open(request, timeout=55) as response:
+                result = json.loads(response.read(16384))
+            from local_diagnostics import DEEP_STAGES
+            stages = result['stages']
+            if len(stages) != len(DEEP_STAGES):
+                raise ValueError
+            # Rebuild the boundary from fixed labels/statuses only.
+            safe = []
+            for row, (label, _, _) in zip(stages, DEEP_STAGES):
+                if row['label'] != label or row['status'] not in ('CONFIRMED', 'FAILED', 'NOT_TESTED'):
+                    raise ValueError
+                safe.append({'label': label, 'status': row['status']})
+            return {'ok': any(row['label'] == 'H.264 decoded' and row['status'] == 'CONFIRMED' for row in safe), 'stages': safe,
+                    'message': 'One bounded local test completed. Unconfirmed steps remain NOT_TESTED.'}
+        except (OSError, URLError, ValueError, KeyError, TypeError):
+            from local_diagnostics import deep_result
+            return deep_result(set(), 'DIAGNOSTIC_UNAVAILABLE')
+
     def inspect_cloud(self, port: int) -> dict[str, object]:
         """Analyze one saved camera's cloud packet types without returning media."""
         with self.client.lock:
@@ -448,7 +479,7 @@ class CameraHandler(BaseHTTPRequestHandler):
             self.respond(400, {"error": "Invalid form data."})
             return
         path = urlsplit(self.path).path
-        match = re.fullmatch(r"/api/cameras/(\d+)(/test|/test-audio|/restart|/inspect-cloud|/local-credentials)?", path)
+        match = re.fullmatch(r"/api/cameras/(\d+)(/test|/test-audio|/restart|/inspect-cloud|/local-credentials|/deep-local)?", path)
         try:
             if operation == "add" and path == "/api/connection":
                 self.server.service.set_connection(payload)
@@ -458,7 +489,7 @@ class CameraHandler(BaseHTTPRequestHandler):
                 if match.group(2) == '/local-credentials':
                     self.respond(200, self.server.service.local_credentials(int(match.group(1)), payload))
                     return
-                action = {"/test": self.server.service.test,
+                action = {"/deep-local": self.server.service.deep_local, "/test": self.server.service.test,
                           "/test-audio": self.server.service.test_audio,
                           "/restart": self.server.service.restart,
                           "/inspect-cloud": self.server.service.inspect_cloud}[match.group(2)]
