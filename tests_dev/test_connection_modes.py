@@ -87,7 +87,8 @@ class ModeTests(unittest.TestCase):
         self.assertNotIn("PRIVATE-CAS-SECRET", json.dumps(state))
         self.assertNotIn("media_key", json.dumps(state))
         with patch.object(runner, "WORKERS", []), \
-             patch("local_capture.read_credentials", return_value=("192.168.10.140", 3)):
+             patch("local_capture.read_credentials", return_value=("192.168.10.140", 3)), \
+             patch("pathlib.Path.lstat") :
             state = runtime.snapshot()
         self.assertEqual(state["cameras"][0]["local_credentials"], "format_valid")
         self.assertNotIn("video_verified", state["cameras"][0])
@@ -205,7 +206,7 @@ class LocalCaptureTests(unittest.TestCase):
              patch("local_proxy.subprocess.Popen") as spawn:
             self.assertIsNone(service.open_local(worker, "static", ""))
         spawn.assert_not_called()
-        self.assertEqual(service.last_result[worker.serial], "local_unavailable")
+        self.assertEqual(service.last_result[worker.serial], "INVALID_CREDENTIALS")
 
     def test_shutdown_terminates_every_owned_capture(self):
         service = object.__new__(LocalService)

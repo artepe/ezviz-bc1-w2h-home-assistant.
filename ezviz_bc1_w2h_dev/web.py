@@ -17,6 +17,7 @@ from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from camera_config import Camera, next_port, parse_cameras, validate_name, validate_serial
 from media_probe import inspect_audio
+from local_diagnostics import explain_local_error
 from supervisor_client import SettingsError, SupervisorClient
 
 STATIC = Path(__file__).with_name("static")
@@ -207,7 +208,8 @@ class CameraService:
                 payload = b""
             finally:
                 error.close()
-            message = explain_proxy_error(error.code, payload)
+            message = (explain_local_error(payload, error.code) if self.runtime.mode == "local_only"
+                       else explain_proxy_error(error.code, payload))
             # Only a confirmed stale authentication/session response merits
             # re-login. Generic 502/no-media errors may simply be sleeping BC1s.
             if message.startswith("HTTP 502: EZVIZ rejected the cloud session"):
@@ -217,6 +219,8 @@ class CameraService:
                     message += " Automatic login refresh is rate-limited to five minutes."
             return {"ok": False, "message": message}
         except (OSError, URLError):
+            if self.runtime.mode == "local_only":
+                return {"ok": False, "message": "The local proxy connection failed or timed out within 35 seconds. W2H CAS authorization, channel mapping and video remain unconfirmed. Cloud access is disabled."}
             return {"ok": False, "message": "No video data arrived within 35 seconds. Check that the W2H base station is online in the EZVIZ app and its network cable is connected. Wake the camera in the app; when connectivity returns, use Restart proxy and test again."}
 
     def inspect_cloud(self, port: int) -> dict[str, object]:

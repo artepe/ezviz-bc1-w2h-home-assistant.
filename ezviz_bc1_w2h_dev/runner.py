@@ -531,13 +531,29 @@ class Runtime:
             if mode == "local_only":
                 # Report only safe, static file validation. Never return the
                 # key, operation code, media key or credential contents.
-                from local_capture import read_credentials
-                try:
-                    read_credentials(Path(f"/data/local_camera_{camera.index}.json"), camera.serial)
-                except (ValueError, UnicodeError):
-                    state["local_credentials"] = "missing_or_invalid"
-                else:
-                    state["local_credentials"] = "format_valid"
+                from local_diagnostics import credential_status
+                state["local_file"] = f"/data/local_camera_{camera.index}.json"
+                state["local_credential_check"] = credential_status(Path(state["local_file"]), camera.serial)
+                state["local_credentials"] = ("format_valid" if state["local_credential_check"]["validation"] == "FORMAT_VALID" else "missing_or_invalid")
+                state["local_error"] = state["local_credential_check"]["validation"]
+                state["local_stream"] = {"last_result": "UNKNOWN", "evidence": None}
+                if listening:
+                    from urllib.request import build_opener, ProxyHandler
+                    try:
+                        with build_opener(ProxyHandler({})).open(f"http://127.0.0.1:{camera.port}/status", timeout=0.3) as response:
+                            diagnostic = json.loads(response.read(8192))
+                        from local_diagnostics import MESSAGES
+                        code = diagnostic["cameras"][0]["last_result"]
+                        evidence = diagnostic.get("evidence")
+                        state["local_stream"] = {
+                            "last_result": code if code in MESSAGES or code == "local" else "UNKNOWN",
+                            "retry_seconds": max(0, int(diagnostic["cameras"][0].get("lan_retry_seconds", 0))),
+                            "evidence": {key: evidence.get(key) is True for key in (
+                                "tcp_connected", "preview_accepted", "stream_setup", "media_frame_received", "mpegts_received"
+                            )} if isinstance(evidence, dict) else None,
+                        }
+                    except Exception:
+                        pass
             states.append(state)
         return {"message": message, "connection_mode": mode, "cameras": states}
 

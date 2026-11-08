@@ -173,3 +173,6 @@ The GitHub Actions job **successfully built and published** `ghcr.io/artepe/ezvi
 **Important:** GitHub Container Registry packages may start **Private**, even when this code repository is Public. To allow Home Assistant OS to pull the image, open **GitHub → your profile → Packages → ezviz-bc1-w2h → Package settings → Change visibility → Public**. This publishes the compiled image, **not** your EZVIZ account information.
 
 For the two-camera update, run `ha store reload` and check `version_latest: 0.1.3` before updating the app. Wait for its GitHub Actions build to succeed so the matching image is available. If the image pull fails with access denied, check the GHCR package visibility. If it fails for DNS/connectivity, inspect the Supervisor logs.
+
+Paikallisen 503-virheen diagnostiikka ja rajattu W2H-testaussuunnitelma:
+[DEV_LOCAL_DIAGNOSTICS_FI.md](../docs/DEV_LOCAL_DIAGNOSTICS_FI.md).

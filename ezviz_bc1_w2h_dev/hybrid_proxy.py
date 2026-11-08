@@ -217,6 +217,9 @@ class HybridService:
         except (HTTPError, URLError, OSError, TimeoutError, ValueError):
             return None
 
+    def unavailable_payload(self, worker):
+        return b"No live video from the selected connection mode. No fallback was performed.\n"
+
     def stream(self, handler: BaseHTTPRequestHandler, worker):
         with self.lock:
             mode, hub, cas = self.mode, self.hub_ip, self.cas_serial
@@ -240,7 +243,7 @@ class HybridService:
             handler.send_header("Content-Type", "text/plain; charset=utf-8")
             handler.send_header("Cache-Control", "no-store")
             handler.end_headers()
-            handler.wfile.write(b"No live video from the selected connection mode. No fallback was performed.\n")
+            handler.wfile.write(self.unavailable_payload(worker))
             return
         try:
             handler.send_response(200)

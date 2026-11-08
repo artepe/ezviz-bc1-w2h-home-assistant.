@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.3 — Prepared local-only diagnostics
+
+- Show each camera's credential file presence and structural validation independently in Open Web UI. No credential values are returned.
+- Preserve fixed local failure codes through HTTP 503 and cooldown. Report UNKNOWN when SDK errors do not establish the failing stage; missing Session does not establish CAS rejection.
+- Observe TCP connection outcomes, accepted preview responses, stream setup responses and SDK media frames through a bounded private child-process channel. MPEG-TS framing remains separate from video decoding.
+- Keep the same DEV slug and connection configuration. Hardware qualification and image publication/deployment remain pending.
+
 ## 0.2.13 – Optional LAN-first hybrid video entry point (experimental)
 
 - Add local-first `127.0.0.1:8658/<camera-serial>.ts` MPEG-TS endpoint alongside the previous per-camera `8558+` EZVIZ VTM cloud proxies. Existing go2rtc streams and stored camera credentials remain unchanged.

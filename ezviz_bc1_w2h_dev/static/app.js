@@ -79,8 +79,18 @@ function render() {
     const meta = element("div", "card-meta");
     const statusDetails = [["Dashboard stream", camera.stream], ["Local port", String(camera.port)]];
     if (mode === "local_only") {
-      statusDetails.push(["LAN credentials", camera.local_credentials === "format_valid"
-        ? "File format valid (video not verified)" : "Missing or invalid"]);
+      const check = camera.local_credential_check || {};
+      statusDetails.push(["Credential file", camera.local_file || "Unknown"]);
+      statusDetails.push(["File exists", check.exists === true ? "Yes" : check.exists === false ? "No" : "Unknown"]);
+      statusDetails.push(["File validation", check.validation || "UNKNOWN"]);
+      statusDetails.push(["Channel on W2H", "Not verified by file validation"]);
+      const stream = camera.local_stream || {};
+      statusDetails.push(["Last stream result", stream.last_result || "UNKNOWN"]);
+      if (stream.retry_seconds) statusDetails.push(["Retry wait", `${stream.retry_seconds} s`]);
+      const evidence = stream.evidence || {};
+      for (const [key, label] of [["tcp_connected", "SDK TCP connected"], ["preview_accepted", "Preview accepted (Result=0 + Session)"], ["stream_setup", "Stream setup response"], ["media_frame_received", "SDK media frame received"], ["mpegts_received", "MPEG-TS received"]]) {
+        statusDetails.push([label, evidence[key] === true ? "Confirmed" : "Not confirmed"]);
+      }
     }
     for (const [label, value] of statusDetails) {
       const item = element("div", "meta-item");
