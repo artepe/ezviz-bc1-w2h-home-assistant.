@@ -160,6 +160,27 @@ class CameraService:
                 camera = next((c for c in cameras if c.port == port), None)
                 if camera is None:
                     raise ValueError('Camera not found. Refresh this page.')
+                if payload.get('action') == 'discover':
+                    if payload.get('allow_cloud') is not True:
+                        raise ValueError('Authorize the one-time channel metadata lookup first.')
+                    region = payload.get('region', 'isgpopen.ezvizlife.com')
+                    if region not in ('isgpopen.ezvizlife.com', 'iusopen.ezvizlife.com', 'open.ys7.com'):
+                        raise ValueError('Choose an EZVIZ API region.')
+                    try:
+                        result = subprocess.run(
+                            [sys.executable, str(Path(__file__).with_name('channel_discovery.py')),
+                             '--directory', str(self.credential_directory), '--serial', camera.serial,
+                             '--region', region], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                            timeout=55, check=False,
+                            env={k: v for k, v in os.environ.items() if not k.startswith(('EZVIZ_', 'SUPERVISOR_'))})
+                        if result.returncode or len(result.stdout) > 65536:
+                            raise ValueError
+                        outcome = json.loads(result.stdout)
+                        # Only fixed statuses and numeric candidates cross ingress.
+                        from channel_discovery import safe_result
+                        return safe_result(outcome, camera.serial)
+                    except (OSError, ValueError, subprocess.SubprocessError):
+                        raise ValueError('Channel lookup failed or timed out. No credentials were changed.') from None
                 channel = payload.get('channel')
                 if type(channel) is not int or not 1 <= channel <= 256:
                     raise ValueError('Enter the observed W2H channel (1..256). It cannot be inferred from camera order.')

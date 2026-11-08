@@ -61,6 +61,11 @@
       <label for="credentials-channel">Observed W2H camera channel (required)</label>
       <input id="credentials-channel" type="number" min="1" max="256" step="1" required>
       <p>Use a channel confirmed by your device metadata or an accepted preview request. Leave setup incomplete if it is unknown.</p>
+      <label><input id="channel-consent" type="checkbox"> I authorize a one-time cloud metadata lookup using the existing saved session.</label>
+      <label for="channel-region">Open Platform token server</label>
+      <select id="channel-region"><option>isgpopen.ezvizlife.com</option><option>iusopen.ezvizlife.com</option><option>open.ys7.com</option></select>
+      <button id="channel-discover" class="button secondary" type="button">Discover channel candidates</button>
+      <p id="channel-result" role="status">Cloud channels are candidates until their local SDK mapping is verified. Discovery does not save credentials.</p>
       <label for="credentials-action">Setup method</label>
       <select id="credentials-action"><option value="import">Import private SDK JSON</option><option value="acquire">Fetch from EZVIZ (uses cloud once)</option></select>
       <div id="credentials-import">

@@ -91,3 +91,39 @@ paikalliseen tallennustilaan. Älä liitä omaa vientiä GitHubiin tai keskustel
 
 Testit käyttävät vain synteettisiä tunnisteita: todellinen kirjautuminen,
 W2H:n kanava/CAS-tulos ja videon vastaanotto on varmennettava erikseen.
+
+## Automaattinen kanavahaku (DEV 0.3.5)
+
+Local credentials → **Discover channel candidates** käyttää erillisellä
+suostumuksella DEV:n olemassa olevaa `/data/ezviz_token.json`-istuntoa.
+Se hakee pyEzvizApi:n `get_device_infos()`- ja `get_managed_device_ipcs()`-
+metatiedot. Haku ei kirjaudu sisään, uusi istuntoa, hanki avaimia, rekisteröi
+P2P:tä tai muuta katselutilaa. Puuttuva tai vanhentunut istunto ilmoitetaan.
+
+[Virallinen Get device channel information](https://open.ys7.com/help/en/476)
+on `POST /api/lapp/device/camera/list`, lomakekenttinä `accessToken` ja
+`tukiaseman deviceSerial`. `ipcSerial` yksilöi kameran, `channelNo` on pilven
+kanava. Consumer-istunnon `session_id` ei ole tämän rajapinnan `accessToken`.
+Jos omistajalla on valtuutettu Open Platform -token, sen voi sijoittaa yksityisesti
+DEV-kontin tiedostoon `/data/ezviz_open_token.json` muodossa
+`{"accessToken":"<oma token>"}`, oikeuksin 0600. Valitse tokenin myöntänyt
+Open Platform -palvelin lomakkeesta. Tokenia ei syötetä selaimeen eikä tallenneta
+repositorioon. Ilman Open Platform -tokenia pyEzvizApi-metatietohaku toimii
+olemassa olevalla consumer-istunnolla; virallista rajapintaa ei kutsuta väärällä
+tokenilla.
+
+Tunniste `tukiasema-kamera` yhdistetään täsmälliseen `ipcSerial`-kenttään ja
+mahdolliseen `deviceSerial`-tukiasemaan, tai pyEzvizApi:n täyteen kameratunnukseen.
+Metatiedon `channelNumber` on kanavamäärä eikä kanavakartta. Listajärjestys,
+kameran numero tai SDK:n oletuskanava eivät ole näyttöä. Ristiriitaiset löydökset
+näytetään kaikki ehdokkaina.
+
+Pilven `channelNo`-arvon vastaavuutta paikallisen SDK:n `Channel`-arvoon ei ole
+vahvistettu dokumentaatiolla tai näillä laitteilla. Siksi jokainen löydös on
+**unverified SDK candidate**. Haku ei täytä tallennettavaa kanavaa eikä asenna
+tunnistetietoja. Vahvista kanava erikseen paikallisella preview-vastauksella ja
+kameran oikealla kuvalla ennen sen käyttöönottoa.
+
+Tämän työympäristön tarkistuksessa 2026-11-08 ei löytynyt valtuutettua
+EZVIZ-istuntoa. Kameroiden todellisia kanavia tai SDK-vastaavuutta ei siten
+voitu mitata; niitä ei ole päätelty eikä esimerkkilukuja käytetty tuloksina.

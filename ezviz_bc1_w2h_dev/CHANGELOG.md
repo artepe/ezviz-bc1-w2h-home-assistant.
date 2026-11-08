@@ -1,3 +1,9 @@
+## 0.3.5
+
+- Discover channel candidates in Local credentials using an existing authorized EZVIZ session and optional private Open Platform token.
+- Match explicit camera identities; retain conflicting candidates and never claim cloud channelNo proves local SDK Channel.
+- Keep discovery separate from credential installation; no login, session renewal, media or key acquisition.
+
 # Changelog
 
 ## 0.3.4 — Private local credential setup in Open Web UI

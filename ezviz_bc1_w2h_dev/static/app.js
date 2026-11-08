@@ -249,6 +249,7 @@ function openCredentials(camera) {
   byId("credentials-camera").textContent = `${camera.name} · ${camera.serial}`;
   byId("credentials-error").hidden = true;
   credentialMethod();
+  byId("channel-result").textContent = "Cloud channels are unverified SDK candidates.";
   byId("credentials-dialog").showModal();
 }
 byId("credentials-action").addEventListener("change", credentialMethod);
@@ -288,6 +289,27 @@ byId("credentials-form").addEventListener("submit", async event => {
     byId("credentials-password").value = "";
     byId("credentials-sms").value = "";
     save.disabled = false; save.textContent = "Save credentials";
+    byId("credentials-cancel").disabled = false;
+  }
+});
+
+byId("channel-discover").addEventListener("click", async () => {
+  const button = byId("channel-discover");
+  button.disabled = true;
+  byId("credentials-save").disabled = true;
+  byId("credentials-cancel").disabled = true;
+  const output = byId("channel-result");
+  try {
+    if (!byId("channel-consent").checked) throw new Error("Authorize the one-time cloud metadata lookup first.");
+    output.textContent = "Looking up channel metadata (up to 55 seconds)…";
+    const result = await request(`api/cameras/${credentialCamera.port}/local-credentials`, "POST",
+      {action: "discover", allow_cloud: true, region: byId("channel-region").value});
+    const rows = result.candidates.map(x => `${x.channel} (${x.source}; unverified SDK candidate)`);
+    output.textContent = `${result.serial}: ${rows.length ? rows.join(", ") : "No channel candidate found"}. ${result.conflict ? "Conflicting metadata. " : ""}${result.status.join(", ")}. Local SDK mapping remains unverified. Enter a channel only after confirming it independently.`;
+  } catch (error) { output.textContent = error.message; }
+  finally {
+    button.disabled = false;
+    byId("credentials-save").disabled = false;
     byId("credentials-cancel").disabled = false;
   }
 });
