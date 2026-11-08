@@ -9,7 +9,7 @@ on:
       - 'scripts/**'
       - '.github/workflows/build-ezviz-dev.yml'
   push:
-    branches: [main, codex/dev-ghcr-prebuilt-images]
+    branches: [main, codex/dev-ghcr-prebuilt-images, codex/dev-web-local-credentials]
     paths:
       - 'ezviz_bc1_w2h_dev/**'
       - 'tests/**'
@@ -112,20 +112,20 @@ jobs:
       - name: Test default s6 startup with synthetic Supervisor environment
         run: python3 scripts/check_container_environment.py "$IMAGE:build-$GITHUB_SHA-$ARCH" --platform "$PLATFORM"
       - name: Authenticate using the workflow token
-        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/dev-ghcr-prebuilt-images')
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/dev-ghcr-prebuilt-images' || github.ref == 'refs/heads/codex/dev-web-local-credentials')
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push tested commit-specific candidate
-        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/dev-ghcr-prebuilt-images')
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/dev-ghcr-prebuilt-images' || github.ref == 'refs/heads/codex/dev-web-local-credentials')
         run: docker push "$IMAGE:build-$GITHUB_SHA-$ARCH"
 
   publish:
     name: Publish and verify the versioned multiarch image
     needs: [validate, build]
-    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/dev-ghcr-prebuilt-images')
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/dev-ghcr-prebuilt-images' || github.ref == 'refs/heads/codex/dev-web-local-credentials')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:

@@ -1,3 +1,17 @@
+# EZVIZ DEV 0.3.4: paikallisten tunnistetietojen käyttöönotto
+
+Avaa **Open Web UI → Local only → kameran Local credentials**. Voit tuoda
+omistajan suojatun SDK JSON -viennin tiedostovalitsimella tai sallia erillisen,
+kerran käynnistettävän EZVIZ-tilihaun. HAOS-isäntäkirjautumista tai käsin
+ajettavia Docker-komentoja ei tarvita.
+
+Anna aina havaittu W2H-kamerakanava. Jos sitä ei tunneta, käyttöönottoa ei
+voi vielä vahvistaa: SDK:n tunnistetietohaku ei palauta kanavakarttaa.
+**FORMAT_VALID ei tarkoita toimivaa videota.**
+
+[DEV 0.3.4:n käyttöohje ja rajat](../docs/DEV_WEB_CREDENTIALS_FI.md).
+Alla olevat vanhempien versioiden pilviohjeet ovat taustatietoa.
+
 # EZVIZ BC1 / W2H Cloud Proxy (TEST)
 
 **Experimental Raspberry Pi 5 / Home Assistant OS app - version 0.2.3.**

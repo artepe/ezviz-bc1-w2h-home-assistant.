@@ -1,5 +1,5 @@
 name: "EZVIZ BC1 / W2H DEV - Local or Cloud"
-version: "0.3.3"
+version: "0.3.4"
 slug: "ezviz_bc1_w2h_dev"
 image: "ghcr.io/artepe/ezviz-bc1-w2h"
 description: "Explicit local-only or EZVIZ cloud connection; local W2H video/audio is experimental"

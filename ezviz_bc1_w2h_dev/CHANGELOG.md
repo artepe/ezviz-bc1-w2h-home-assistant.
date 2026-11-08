@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.4 — Private local credential setup in Open Web UI
+
+- Add ingress/CSRF protected import of an authorized SDK JSON export, with explicit observed channel and optional atomic replacement. Store only the credential allowlist with mode 0600 in the DEV add-on data volume; support all 16 camera slots.
+- Add an explicitly authorized, 60-second one-time owner login and SDK LAN/P2P/CAS lookup, isolated from saved cloud token files. Credentials travel over stdin, not process arguments; upstream logs and exception text are discarded.
+- Fail closed for unknown channel, unsupported endpoints, invalid CAS key or unsuccessful acquisition. FORMAT_VALID never establishes W2H authentication or working video. Media decryption and the real W2H CAS/channel mapping remain unqualified.
+- Preserve the stable add-on and cloud video pipeline. No HAOS host login or manual Docker command is needed for this setup flow.
+
 ## 0.3.3 — Prepared local-only diagnostics
 
 - Show each camera's credential file presence and structural validation independently in Open Web UI. No credential values are returned.

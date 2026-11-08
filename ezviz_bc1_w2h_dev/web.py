@@ -11,6 +11,8 @@ import re
 import secrets
 import socket
 import threading
+import subprocess
+import sys
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
@@ -143,6 +145,76 @@ class CameraService:
         self.client = client
         self.runtime = runtime
         self.audio_test_lock = threading.Lock()
+        self.credential_lock = threading.Lock()
+        self.credential_directory = Path('/data')
+
+    def local_credentials(self, port, payload):
+        """Ingress + CSRF protected; never return submitted or acquired secrets."""
+        if self.runtime.mode != 'local_only':
+            raise ValueError('Select Local only before setting local credentials.')
+        if not self.credential_lock.acquire(blocking=False):
+            raise ValueError('Another credential operation is running. Wait for it to finish.')
+        try:
+            with self.client.lock:
+                cameras = parse_cameras(self.client.raw_options())
+                camera = next((c for c in cameras if c.port == port), None)
+                if camera is None:
+                    raise ValueError('Camera not found. Refresh this page.')
+                channel = payload.get('channel')
+                if type(channel) is not int or not 1 <= channel <= 256:
+                    raise ValueError('Enter the observed W2H channel (1..256). It cannot be inferred from camera order.')
+                if type(payload.get('replace', False)) is not bool:
+                    raise ValueError('Invalid replacement option.')
+                replace = payload.get('replace') is True
+                target = self.credential_directory / f'local_camera_{camera.index}.json'
+                if target.exists() and not replace:
+                    raise ValueError('Credentials already exist. Explicitly select Replace to overwrite them.')
+                data = payload.get('credentials')
+                if payload.get('action') == 'acquire':
+                    if payload.get('allow_cloud') is not True:
+                        raise ValueError('Authorize the one-time EZVIZ cloud login and P2P/CAS lookup first.')
+                    fields = {k: payload.get(k, '') for k in ('username', 'password', 'sms_code', 'cas_serial', 'api_url')}
+                    if not all(isinstance(v, str) for v in fields.values()) or not fields['username'] or not fields['password']:
+                        raise ValueError('Enter your EZVIZ account and password.')
+                    if fields['api_url'] not in ('apiieu.ezvizlife.com', 'apius.ezvizlife.com', 'apias.ezvizlife.com'):
+                        raise ValueError('Choose an EZVIZ API region.')
+                    if fields['sms_code'] and (not fields['sms_code'].isascii() or not fields['sms_code'].isdigit() or len(fields['sms_code']) > 10):
+                        raise ValueError('Enter a numeric verification code.')
+                    if fields['cas_serial']:
+                        validate_serial(fields['cas_serial'])
+                    fields['serial'] = camera.serial
+                    try:
+                        result = subprocess.run(
+                            [sys.executable, str(Path(__file__).with_name('local_acquire.py'))],
+                            input=json.dumps(fields).encode(), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                            timeout=60, check=False,
+                            env={k: v for k, v in os.environ.items() if not k.startswith(('EZVIZ_', 'SUPERVISOR_'))},
+                        )
+                        if result.returncode in (10, 11, 12):
+                            messages = {
+                                10: 'EZVIZ requires verification. Enter your verification code and password, then retry; alternatively import an authorized SDK export.',
+                                11: 'EZVIZ sign-in failed. Check account, password, region and verification code. No local credentials were installed.',
+                                12: 'EZVIZ sign-in completed, but LAN metadata, P2P registration or CAS lookup failed. The W2H CAS mapping may be unsupported. Import an authorized SDK export if available.',
+                            }
+                            return {'ok': False, 'message': messages[result.returncode]}
+                        if result.returncode or len(result.stdout) > 65536:
+                            raise ValueError
+                        data = json.loads(result.stdout)
+                    except (OSError, ValueError, subprocess.SubprocessError):
+                        raise ValueError('EZVIZ lookup failed or timed out. Check account, region, MFA and observed CAS serial. No credentials were installed. You can import an authorized SDK JSON export instead.') from None
+                elif payload.get('action') != 'import':
+                    raise ValueError('Choose Import or Fetch from EZVIZ.')
+                from local_credentials import install_data
+                try:
+                    install_data(data, self.credential_directory, camera.serial, channel, camera.index, replace=replace)
+                except FileExistsError:
+                    raise ValueError('Credentials already exist. Explicitly select Replace to overwrite them.') from None
+                except (OSError, ValueError, TypeError, KeyError, AttributeError):
+                    raise ValueError('Invalid credentials. Check serial, observed channel, private IPv4 endpoint, ports 9010/9020 and the CAS tuple. Existing credentials were retained.') from None
+            self.runtime.reload.set()
+            return {'ok': True, 'message': 'FORMAT_VALID: private credentials saved. W2H authentication, channel and video remain unconfirmed. Use Restart proxy, then Test video; check the picture in the player.'}
+        finally:
+            self.credential_lock.release()
 
     def change(self, operation: str, payload: dict, port: int | None = None) -> None:
         with self.client.lock:
@@ -349,13 +421,16 @@ class CameraHandler(BaseHTTPRequestHandler):
             self.respond(400, {"error": "Invalid form data."})
             return
         path = urlsplit(self.path).path
-        match = re.fullmatch(r"/api/cameras/(\d+)(/test|/test-audio|/restart|/inspect-cloud)?", path)
+        match = re.fullmatch(r"/api/cameras/(\d+)(/test|/test-audio|/restart|/inspect-cloud|/local-credentials)?", path)
         try:
             if operation == "add" and path == "/api/connection":
                 self.server.service.set_connection(payload)
             elif operation == "add" and path == "/api/cameras":
                 self.server.service.change("add", payload)
             elif match and operation == "add" and match.group(2):
+                if match.group(2) == '/local-credentials':
+                    self.respond(200, self.server.service.local_credentials(int(match.group(1)), payload))
+                    return
                 action = {"/test": self.server.service.test,
                           "/test-audio": self.server.service.test_audio,
                           "/restart": self.server.service.restart,

@@ -107,6 +107,7 @@ function render() {
     restart.disabled = busy;
     inspect.disabled = busy || mode !== "cloud";
     actions.append(test, audioTest, inspect, restart, button("Edit", "button quiet", () => openCamera(camera)), button("Remove", "button quiet", () => openRemove(camera)));
+    if (mode === "local_only") actions.append(button("Local credentials", "button secondary", () => openCredentials(camera)));
     card.append(head, meta, actions);
     if (results.has(camera.port)) {
       const result = results.get(camera.port);
@@ -234,3 +235,59 @@ byId("connection-form").addEventListener("submit", async event => {
 });
 refresh();
 window.setInterval(() => { if (!document.hidden) refresh(); }, 5000);
+
+let credentialCamera = null;
+function credentialMethod() {
+  const cloud = byId("credentials-action").value === "acquire";
+  byId("credentials-cloud").hidden = !cloud;
+  byId("credentials-cloud").disabled = !cloud;
+  byId("credentials-import").hidden = cloud;
+}
+function openCredentials(camera) {
+  credentialCamera = camera;
+  byId("credentials-form").reset();
+  byId("credentials-camera").textContent = `${camera.name} · ${camera.serial}`;
+  byId("credentials-error").hidden = true;
+  credentialMethod();
+  byId("credentials-dialog").showModal();
+}
+byId("credentials-action").addEventListener("change", credentialMethod);
+byId("credentials-cancel").addEventListener("click", () => byId("credentials-dialog").close());
+byId("credentials-dialog").addEventListener("cancel", event => {
+  if (byId("credentials-save").disabled) event.preventDefault();
+});
+byId("credentials-dialog").addEventListener("close", () => byId("credentials-form").reset());
+byId("credentials-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  const save = byId("credentials-save");
+  save.disabled = true;
+  byId("credentials-cancel").disabled = true;
+  byId("credentials-error").hidden = true;
+  try {
+    const payload = {action: byId("credentials-action").value, channel: Number(byId("credentials-channel").value), replace: byId("credentials-replace").checked};
+    if (payload.action === "import") {
+      const file = byId("credentials-file").files[0];
+      if (!file || file.size > 24000) throw new Error("Choose a private SDK JSON export smaller than 24 KB.");
+      try { payload.credentials = JSON.parse(await file.text()); }
+      catch { throw new Error("The selected file is not valid SDK JSON."); }
+    } else {
+      Object.assign(payload, {username: byId("credentials-user").value, password: byId("credentials-password").value,
+        sms_code: byId("credentials-sms").value, api_url: byId("credentials-region").value,
+        cas_serial: byId("credentials-cas").value, allow_cloud: byId("credentials-consent").checked});
+    }
+    save.textContent = "Saving (up to 60 seconds)...";
+    const result = await request(`api/cameras/${credentialCamera.port}/local-credentials`, "POST", payload);
+    if (!result.ok) throw new Error(result.message);
+    byId("credentials-dialog").close();
+    notice(result.message, "success", 30000);
+    await refresh();
+  } catch (error) {
+    byId("credentials-error").textContent = error.message;
+    byId("credentials-error").hidden = false;
+  } finally {
+    byId("credentials-password").value = "";
+    byId("credentials-sms").value = "";
+    save.disabled = false; save.textContent = "Save credentials";
+    byId("credentials-cancel").disabled = false;
+  }
+});

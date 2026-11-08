@@ -53,5 +53,38 @@
   </dialog>
 
   <dialog id="remove-dialog" aria-labelledby="remove-title"><form id="remove-form"><div class="dialog-head"><h2 id="remove-title">Remove camera?</h2><button class="icon-button" id="close-remove" type="button" aria-label="Close">&times;</button></div><p id="remove-description"></p><p>This removes the camera from this manager. Your device remains in your EZVIZ account.</p><div id="remove-error" class="form-error" role="alert" hidden></div><div class="dialog-actions"><button class="button secondary" id="cancel-remove" type="button">Cancel</button><button class="button danger" id="confirm-remove" type="submit">Remove camera</button></div></form></dialog>
+  <dialog id="credentials-dialog" aria-labelledby="credentials-title">
+    <form id="credentials-form" autocomplete="off">
+      <h2 id="credentials-title">Local credentials</h2>
+      <p id="credentials-camera"></p>
+      <p>Use an authorized pyEzvizApi SDK export or explicitly request a one-time cloud lookup. Nothing is inferred from camera order. Saving validates the format only; W2H video remains unverified.</p>
+      <label for="credentials-channel">Observed W2H camera channel (required)</label>
+      <input id="credentials-channel" type="number" min="1" max="256" step="1" required>
+      <p>Use a channel confirmed by your device metadata or an accepted preview request. Leave setup incomplete if it is unknown.</p>
+      <label for="credentials-action">Setup method</label>
+      <select id="credentials-action"><option value="import">Import private SDK JSON</option><option value="acquire">Fetch from EZVIZ (uses cloud once)</option></select>
+      <div id="credentials-import">
+        <label for="credentials-file">Private local-sdk-keys JSON export</label>
+        <input id="credentials-file" type="file" accept="application/json,.json">
+        <p>The export must match this camera serial and contain endpoint.host and cas.key / cas.operation_code. The file stays private; secrets are never returned in diagnostics.</p>
+      </div>
+      <fieldset id="credentials-cloud" hidden disabled>
+        <legend>One-time authorized EZVIZ lookup</legend>
+        <p>This signs in separately and requests LAN metadata, P2P registration and CAS credentials. Account details are used in memory only. The existing cloud stream configuration and token files are unchanged. Media decryption keys are not fetched.</p>
+        <label for="credentials-region">Account region</label>
+        <select id="credentials-region"><option value="apiieu.ezvizlife.com">Europe</option><option value="apius.ezvizlife.com">Americas</option><option value="apias.ezvizlife.com">Asia</option></select>
+        <label for="credentials-user">EZVIZ account</label><input id="credentials-user" autocomplete="off">
+        <label for="credentials-password">EZVIZ password</label><input id="credentials-password" type="password" autocomplete="new-password">
+        <label for="credentials-sms">Verification code (if required)</label><input id="credentials-sms" type="password" inputmode="numeric" autocomplete="off">
+        <label for="credentials-cas">Observed CAS serial (optional)</label><input id="credentials-cas" autocomplete="off">
+        <p>Leave CAS serial empty to use the selected full camera ID. Override only from observed device information; the W2H CAS mapping is not verified.</p>
+        <label><input id="credentials-consent" type="checkbox"> I authorize this one-time cloud login, P2P registration and CAS lookup.</label>
+      </fieldset>
+      <label><input id="credentials-replace" type="checkbox"> Replace existing credentials for this camera</label>
+      <p>After saving, use Restart proxy and Test video. FORMAT_VALID does not prove authentication, channel mapping or video. Encrypted media may require further development.</p>
+      <div id="credentials-error" class="form-error" role="alert" hidden></div>
+      <div class="dialog-actions"><button id="credentials-cancel" class="button secondary" type="button">Cancel</button><button id="credentials-save" class="button primary" type="submit">Save credentials</button></div>
+    </form>
+  </dialog>
 </body>
 </html>

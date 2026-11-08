@@ -3,3 +3,10 @@
 @media(prefers-color-scheme:dark){:root{--page:#10151e;--surface:#191f2a;--soft:#222b39;--text:#e7edf7;--muted:#98a8bf;--line:#2b3545;--accent:#79aaff;--accent-soft:#1d2c43;--good:#69d4a9;--danger:#ff929c;--shadow:none}.primary{background:#3478eb;color:#fff}.danger{background:#c63a46;color:#fff}}
 @media(max-width:760px){.workspace{padding:0 20px 20px}.topbar{height:77px}.heading{align-items:flex-start;flex-direction:column;padding:30px 0 22px;gap:22px}h1{font-size:30px}.heading>.button{width:100%}.summary{gap:22px;flex-wrap:wrap;padding:20px 0}.summary p{max-width:none;text-align:left;margin:0;width:100%}.camera-grid{grid-template-columns:1fr}.camera-card{padding:20px}.badge{font-size:9px}.brand{font-size:17px}.optional{display:block;margin:5px 0 0}}
 select{font:inherit;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text);max-width:100%}select:focus-visible{outline:3px solid #6d9cff;outline-offset:3px}#connection-form{margin-bottom:24px}#connection-help{max-width:700px}
+
+/* Private setup remains usable on narrow ingress panels. */
+#credentials-dialog{max-width:560px;max-height:calc(100vh - 32px);overflow:auto}
+#credentials-dialog input[type="checkbox"]{width:auto;margin-right:8px}
+#credentials-dialog fieldset{border:1px solid var(--line);border-radius:8px;margin-top:18px;padding:14px;min-width:0}
+#credentials-dialog select{width:100%;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--page);color:var(--text);font:inherit}
+.card-meta{flex-wrap:wrap}

@@ -176,3 +176,9 @@ For the two-camera update, run `ha store reload` and check `version_latest: 0.1.
 
 Paikallisen 503-virheen diagnostiikka ja rajattu W2H-testaussuunnitelma:
 [DEV_LOCAL_DIAGNOSTICS_FI.md](../docs/DEV_LOCAL_DIAGNOSTICS_FI.md).
+# Paikallisen W2H-protokollan tutkimus
+
+Katso [protokollatutkimus ja suojattu tunnistetietojen tuonti](../docs/W2H_LOCAL_PROTOCOL_RESEARCH_FI.md).
+`local_credentials.py` tuo omistajan SDK-viennin offline-tilassa; se vaatii
+havaitun kamerakanavan eikä korvaa olemassa olevia /data-tiedostoja.
+Paikallinen H.264 ja avainten voimassaolo ilman pilveä ovat vielä varmentamatta.
