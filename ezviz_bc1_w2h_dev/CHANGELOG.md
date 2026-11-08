@@ -1,3 +1,8 @@
+## 0.3.6
+
+- Separate LAN metadata, P2P registration and CAS acquisition failures; show only validated stage, numeric CAS Result and missing Session status.
+- Report CAS identity source without exposing identifiers or secrets; never retry guessed identities.
+
 ## 0.3.5
 
 - Discover channel candidates in Local credentials using an existing authorized EZVIZ session and optional private Open Platform token.

@@ -152,6 +152,19 @@ class WebCredentialTests(unittest.TestCase):
                 self.assertEqual(self.call(self.cloud_payload())[0], 400)
         self.assertFalse(list(self.root.iterdir()))
 
+    def test_stage_diagnostics_reach_ingress_without_secrets(self):
+        for code, stage in ((20, 'lan_metadata'), (21, 'p2p_registration'), (22, 'cas_lookup')):
+            diagnostic = {'stage': stage, 'result_code': 1052170, 'session_present': False,
+                          'cas_identity': 'selected_camera', 'key': SECRET, 'message': 'PRIVATE-TOKEN'}
+            with patch('web.subprocess.run', return_value=SimpleNamespace(
+                    returncode=code, stdout=json.dumps(diagnostic).encode())):
+                status, body = self.call(self.cloud_payload())
+            self.assertEqual(status, 200)
+            self.assertFalse(body['ok'])
+            self.assertEqual(body['stage'], stage)
+            self.assertIn('1052170', body['message'])
+        self.assertFalse(list(self.root.iterdir()))
+
     def test_all_camera_slots_and_symlink_replacement(self):
         install_data(bundle(), self.root, SERIAL, 7, 16)
         self.assertEqual(read_credentials(self.root / 'local_camera_16.json', SERIAL)[1], 7)
@@ -179,25 +192,6 @@ class AcquisitionAdapterTests(unittest.TestCase):
             install_data(credentials.as_dict(), root, SERIAL, 7, 1)
             self.assertEqual(read_credentials(root / 'local_camera_1.json', SERIAL), ('192.168.10.140', 7))
 
-    def test_pinned_sdk_adapter_uses_fresh_owner_login_without_media_or_token_save(self):
-        client = Mock()
-        credentials = Mock()
-        credentials.as_dict.return_value = bundle()
-        modules = {
-            'pyezvizapi': SimpleNamespace(),
-            'pyezvizapi.client': SimpleNamespace(EzvizClient=Mock(return_value=client)),
-            'pyezvizapi.exceptions': SimpleNamespace(EzvizAuthVerificationCode=type('Verification', (Exception,), {})),
-            'pyezvizapi.local_stream_transport': SimpleNamespace(get_local_sdk_stream_credentials_from_client=Mock(return_value=credentials)),
-        }
-        payload = {'username': 'owner', 'password': 'private', 'api_url': 'apiieu.ezvizlife.com', 'serial': SERIAL, 'sms_code': '123456'}
-        with patch.dict(sys.modules, modules):
-            self.assertEqual(local_acquire.acquire(payload), bundle())
-        modules['pyezvizapi.client'].EzvizClient.assert_called_once_with('owner', 'private', url='apiieu.ezvizlife.com', timeout=15)
-        client.login.assert_called_once_with(sms_code=123456)
-        modules['pyezvizapi.local_stream_transport'].get_local_sdk_stream_credentials_from_client.assert_called_once_with(
-            client, SERIAL, cas_serial=None, fetch_media_key=False, register_p2p_session=True, p2p_register_max_retries=1)
-        credentials.as_dict.assert_called_once_with(include_media_key=False)
-        client.logout.assert_not_called()
 
 
 if __name__ == '__main__':

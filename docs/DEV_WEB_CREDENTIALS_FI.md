@@ -127,3 +127,28 @@ kameran oikealla kuvalla ennen sen käyttöönottoa.
 Tämän työympäristön tarkistuksessa 2026-11-08 ei löytynyt valtuutettua
 EZVIZ-istuntoa. Kameroiden todellisia kanavia tai SDK-vastaavuutta ei siten
 voitu mitata; niitä ei ole päätelty eikä esimerkkilukuja käytetty tuloksina.
+
+
+## DEV 0.3.6: hankinnan virhevaiheet
+
+Fetch from EZVIZ erottaa `lan_metadata` (exit 20), `p2p_registration`
+(exit 21) ja `cas_lookup` (exit 22). CAS-vastauksen numeerinen `Result`
+ja Session-kentän puuttuminen näytetään; HTTP-virheen status näytetään,
+jos SDK antaa sen rakenteisena. Poikkeustekstejä ei tulosteta eikä niistä
+poimita numeroita, koska ne voivat sisältää kokonaisia salaisia vastauksia.
+
+Pinnattu SDK a38ba757 käyttää järjestystä get_device_infos →
+register_p2p_session → cas_get_encryption → CasDeviceSession.from_response.
+CAS-kutsun DevSerial on oletuksena valittu koko kameratunniste, myös silloin
+kun se sisältää tukiaseman ja alikameran tunnisteen. Se ei automaattisesti
+vaihdu W2H-tukiaseman sarjanumeroksi. UI näyttää lähteen `selected_camera`
+tai `observed_override`, ei tunnisteen arvoa. Tukiaseman tunnistetta saa
+käyttää vain havaitun, valtuutetun laitetiedon perusteella; automaattista
+vaihtoehtojen kokeilua ei ole.
+
+`Result=1052170` ilman Session-kenttää paikantaa epäonnistumisen CAS-haun
+vastaukseen ennen paikallisen SDK-todennuksen aloittamista. Se ei yksin
+osoita väärää DevSerial-tunnistetta, tilin oikeuspuutetta tai laitekohtaista
+estoperustetta. Koodin tarkkaa merkitystä ja W2H/BC1-mäppäystä ei ole
+vahvistettu. Uusi oikean laitteen ajo tarvitaan nykyisen estävän vaiheen
+vahvistamiseksi. Muutokset eivät ota paikalliseen laitteeseen yhteyttä.

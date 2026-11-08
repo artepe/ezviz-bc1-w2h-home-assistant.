@@ -211,6 +211,9 @@ class CameraService:
                             timeout=60, check=False,
                             env={k: v for k, v in os.environ.items() if not k.startswith(('EZVIZ_', 'SUPERVISOR_'))},
                         )
+                        if result.returncode in (20, 21, 22):
+                            from local_acquire import safe_failure
+                            return safe_failure(result.returncode, result.stdout)
                         if result.returncode in (10, 11, 12):
                             messages = {
                                 10: 'EZVIZ requires verification. Enter your verification code and password, then retry; alternatively import an authorized SDK export.',
