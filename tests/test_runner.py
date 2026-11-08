@@ -1,3 +1,4 @@
+import os
 """Offline checks for camera isolation, token handling and process lifecycle."""
 
 import importlib.util
@@ -11,8 +12,8 @@ import unittest
 from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "ezviz_bc1_w2h"))
-SPEC = importlib.util.spec_from_file_location("ezviz_runner", ROOT / "ezviz_bc1_w2h/runner.py")
+sys.path.insert(0, str(ROOT / os.environ.get("EZVIZ_TEST_ADDON", "ezviz_bc1_w2h")))
+SPEC = importlib.util.spec_from_file_location("ezviz_runner", ROOT / os.environ.get("EZVIZ_TEST_ADDON", "ezviz_bc1_w2h") / "runner.py")
 runner = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = runner
 SPEC.loader.exec_module(runner)

@@ -23,3 +23,11 @@ venv/
 secrets.yaml
 *.p12
 .storage/
+
+# Private LAN diagnostics and camera credential bundles
+local_camera_*.json
+*.pcap
+*.pcapng
+*.mpegts
+*.h264
+*.mkv

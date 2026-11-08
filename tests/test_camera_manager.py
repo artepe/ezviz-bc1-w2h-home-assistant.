@@ -1,3 +1,4 @@
+import os
 """Exercise migration, Supervisor persistence and the actual ingress HTTP API."""
 
 import copy
@@ -13,7 +14,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "ezviz_bc1_w2h"))
+sys.path.insert(0, str(ROOT / os.environ.get("EZVIZ_TEST_ADDON", "ezviz_bc1_w2h")))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from camera_config import Camera, parse_cameras, with_cameras
@@ -143,9 +144,9 @@ class CameraConfigurationTests(unittest.TestCase):
             self.assertIn("media: video,audio\n", snippets["lovelace_audio"])
 
     def test_release_tags_are_read_from_manifest(self):
-        release = metadata(ROOT)
+        release = metadata(ROOT, os.environ.get("EZVIZ_TEST_ADDON", "ezviz_bc1_w2h"))
         self.assertEqual(release["image"], "ghcr.io/artepe/ezviz-bc1-w2h")
-        config = (ROOT / "ezviz_bc1_w2h/config.yaml").read_text()
+        config = (ROOT / os.environ.get("EZVIZ_TEST_ADDON", "ezviz_bc1_w2h") / "config.yaml").read_text()
         self.assertIn(f'version: "{release["version"]}"', config)
         options = config.split("options:\n", 1)[1].split("schema:\n", 1)[0]
         self.assertIn('  camera_serial_2: ""', options)
